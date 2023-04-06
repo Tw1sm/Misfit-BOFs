@@ -1,14 +1,16 @@
-# termserv-tasklist
+# ts-tasklist
 BOF to pull a process listing from a remote host using [MS-TSTS](https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/1eb45af1-94f1-4c42-9e13-dd0a018646fd) RPC calls. Essentially a BOF port of some [tstool.py](https://github.com/fortra/impacket/blob/master/examples/tstool.py) functionality.
+
+There is currently a SID conversion bug in the x86 BOF so only the x64 version will display the SID of the process owner.
 
 ## Usage
 ```
-termserv-tasklist <target host>
+ts-tasklist <target host>
 ```
 
 ### Example
 ```
-=> termserv-tasklist tretogor.redania.local
+=> ts-tasklist tretogor.redania.local
 
 [>] Targeting tretogor.redania.local
 [>] Pipe accessible
@@ -44,7 +46,7 @@ termserv-tasklist <target host>
 
 Host is not reachable/`Ctx_WinStation_API_service` pipe can't be reached/some other issue:
 ```
-=> termserv-tasklist tretogor.redania.local
+=> ts-tasklist tretogor.redania.local
 
 [>] Targeting tretogor.redania.local
 [!] Pipe not accessible

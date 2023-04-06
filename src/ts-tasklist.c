@@ -200,9 +200,12 @@ void execute(WCHAR** dispatch, LPWSTR lpwTarget) {
         pCurrentProcessInfo = ppTsAllProcessesInfo[i].pTsProcessInfo;
 
 		LPWSTR lpSidString = L"";
+
+		#ifndef WOW64
 		if (ADVAPI32$IsValidSid((PSID)ppTsAllProcessesInfo[i].pSid)) {
 			ADVAPI32$ConvertSidToStringSidW((PSID)ppTsAllProcessesInfo[i].pSid, &lpSidString);
 		}
+		#endif
 
         if (pCurrentProcessInfo->ImageName.Length > 0 && pCurrentProcessInfo->ImageName.Buffer) {
             MSVCRT$wcsncpy_s(imageName, MAX_PATH, pCurrentProcessInfo->ImageName.Buffer, pCurrentProcessInfo->ImageName.Length / sizeof(WCHAR));
