@@ -1,4 +1,5 @@
 alias ts-tasklist{
+    $bid = $1;
 	if( size(@_) < 2)
 	{
 		berror($1, "requires target host");
@@ -8,12 +9,13 @@ alias ts-tasklist{
     	
     # Read in the right BOF file
     $handle = openf(script_resource("dist/ts-tasklist." . barch($bid) . ".o"));
-    $data   = readb($handle, -1);
+    $data = readb($handle, -1);
     closef($handle);
 
     # Pack our arguments
     $arg_data  = bof_pack($bid, "Z", $2);
     
+    btask($bid, "Tasking remote tasklist via terminal services");
     beacon_inline_execute($bid, $data, "go", $arg_data);
 }
 
