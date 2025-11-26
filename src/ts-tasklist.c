@@ -2,14 +2,12 @@
 #include "ts-tasklist.h"
 
 #ifdef WOW64
-#include "ms-tsts_legacy_x86_c.h"
+#include "ms-tsts_legacy_c_x86.c"
 #else
-#include "ms-tsts_legacy_c.h"
+#include "ms-tsts_legacy_c_x64.c"
 #endif
 
-#ifdef BRC4
-#include "badger_exports.h"
-#elif BOF
+#ifdef BOF
 #include "beacon.h"
 #else
 #include <stdio.h>
@@ -221,26 +219,7 @@ void execute(WCHAR** dispatch, LPWSTR lpwTarget) {
 
 }
 
-#ifdef BRC4
-void coffee(char** argv, int argc, WCHAR** dispatch) {
-	if (argc < 1) {
-		PRINT(dispatch, "[!] Missing arguments\n");
-		return;
-	}
-
-	char* target = argv[0];
-	
-	// covert target to lpwTarget
-	int requiredSize = KERNEL32$MultiByteToWideChar(CP_UTF8, 0, target, -1, NULL, 0);
-    LPWSTR lpwTarget = (LPWSTR)MSVCRT$malloc(requiredSize * sizeof(WCHAR));
-
-    KERNEL32$MultiByteToWideChar(CP_UTF8, 0, target, -1, lpwTarget, requiredSize);
-
-	execute(dispatch, lpwTarget);
-	return;
-}
-
-#elif BOF
+#ifdef BOF
 void go(IN PCHAR Args, IN ULONG Length) {
 	LPWSTR lpwTarget = NULL;
 	

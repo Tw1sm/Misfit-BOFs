@@ -6,9 +6,8 @@ STRIP_x86 := i686-w64-mingw32-strip
 CFLAGS := -masm=intel
 LIBS := -l rpcrt4 -l advapi32
 
-all: bof_64 bof_86 brc4_64 brc4_86
+all: bof_64 bof_86
 bof: bof_64 bof_86
-brc4: brc4_64 brc4_86
 exe: exe_64 exe_86
 
 bof_64:
@@ -18,14 +17,6 @@ bof_64:
 bof_86:
 	$(CC_x86) -o dist/$(BOFNAME).x86.o -c src/$(BOFNAME).c -DWOW64 -DBOF
 	$(STRIP_x86) --strip-unneeded dist/$(BOFNAME).x86.o
-
-brc4_64:
-	$(CC_x64) $(CFLAGS) -o dist/$(BOFNAME)-brc4.x64.o -c src/$(BOFNAME).c -DBRC4
-	$(STRIP_x64) --strip-unneeded dist/$(BOFNAME)-brc4.x64.o
-
-brc4_86:
-	$(CC_x86) $(CFLAGS) -o dist/$(BOFNAME)-brc4.x86.o -c src/$(BOFNAME).c -DWOW64 -DBRC4
-	$(STRIP_x86) --strip-unneeded dist/$(BOFNAME)-brc4.x86.o
 
 exe_64: 
 	$(CC_x64) $(CFLAGS) src/$(BOFNAME).c -o dist/$(BOFNAME).x64.exe $(LIBS)

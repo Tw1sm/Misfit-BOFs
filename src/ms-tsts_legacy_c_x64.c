@@ -30,7 +30,7 @@
 
 #include <string.h>
 
-#include "ms-tsts_legacy_h.h"
+#include "ms-tsts_legacy_x64.h"
 
 #define TYPE_FORMAT_STRING_SIZE   801                               
 #define PROC_FORMAT_STRING_SIZE   3537                              
