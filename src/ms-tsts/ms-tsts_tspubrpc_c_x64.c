@@ -30,7 +30,7 @@
 
 #include <string.h>
 
-#include "ms-tsts_rspubprc_x64.h"
+#include "ms-tsts_tspubprc_x64.h"
 
 #define TYPE_FORMAT_STRING_SIZE   867                               
 #define PROC_FORMAT_STRING_SIZE   1841                              
@@ -61,9 +61,9 @@ static const RPC_SYNTAX_IDENTIFIER  _RpcTransferSyntax =
 {{0x8A885D04,0x1CEB,0x11C9,{0x9F,0xE8,0x08,0x00,0x2B,0x10,0x48,0x60}},{2,0}};
 
 
-extern const tspubrpc_MIDL_TYPE_FORMAT_STRING tspubrpc__MIDL_TypeFormatString;
-extern const tspubrpc_MIDL_PROC_FORMAT_STRING tspubrpc__MIDL_ProcFormatString;
-extern const tspubrpc_MIDL_EXPR_FORMAT_STRING tspubrpc__MIDL_ExprFormatString;
+static const tspubrpc_MIDL_TYPE_FORMAT_STRING tspubrpc__MIDL_TypeFormatString;
+static const tspubrpc_MIDL_PROC_FORMAT_STRING tspubrpc__MIDL_ProcFormatString;
+static const tspubrpc_MIDL_EXPR_FORMAT_STRING tspubrpc__MIDL_ExprFormatString;
 
 #define GENERIC_BINDING_TABLE_SIZE   0            
 
@@ -91,7 +91,7 @@ static const RPC_CLIENT_INTERFACE TermSrvSession___RpcClientInterface =
     };
 RPC_IF_HANDLE TermSrvSession_v1_0_c_ifspec = (RPC_IF_HANDLE)& TermSrvSession___RpcClientInterface;
 
-extern const MIDL_STUB_DESC TermSrvSession_StubDesc;
+static const MIDL_STUB_DESC TermSrvSession_StubDesc;
 
 static RPC_BINDING_HANDLE TermSrvSession__MIDL_AutoBindHandle;
 
@@ -104,7 +104,7 @@ HRESULT RpcOpenSession(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvSession_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[0],
                   hBinding,
@@ -121,7 +121,7 @@ HRESULT RpcCloseSession(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvSession_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[48],
                   phSession);
@@ -138,7 +138,7 @@ HRESULT RpcConnect(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvSession_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[92],
                   hSession,
@@ -155,7 +155,7 @@ HRESULT RpcDisconnect(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvSession_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[148],
                   hSession);
@@ -170,7 +170,7 @@ HRESULT RpcLogoff(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvSession_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[192],
                   hSession);
@@ -187,7 +187,7 @@ HRESULT RpcGetUserName(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvSession_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[236],
                   hSession,
@@ -205,7 +205,7 @@ HRESULT RpcGetTerminalName(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvSession_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[292],
                   hSession,
@@ -222,7 +222,7 @@ HRESULT RpcGetState(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvSession_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[342],
                   hSession,
@@ -238,7 +238,7 @@ HRESULT RpcIsSessionDesktopLocked(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvSession_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[392],
                   hSession);
@@ -259,7 +259,7 @@ HRESULT RpcShowMessageBox(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvSession_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[436],
                   hSession,
@@ -283,7 +283,7 @@ HRESULT RpcGetTimes(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvSession_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[516],
                   hSession,
@@ -303,7 +303,7 @@ HRESULT RpcGetSessionCounters(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvSession_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[578],
                   hBinding,
@@ -322,7 +322,7 @@ HRESULT RpcGetSessionInformation(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvSession_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[626],
                   hBinding,
@@ -337,7 +337,7 @@ VOID Opnum13NotUsedOnWire(
     /* [in] */ handle_t IDL_handle)
 {
 
-    NdrClientCall2(
+    RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvSession_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[674],
                   IDL_handle);
@@ -349,7 +349,7 @@ VOID Opnum14NotUsedOnWire(
     /* [in] */ handle_t IDL_handle)
 {
 
-    NdrClientCall2(
+    RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvSession_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[704],
                   IDL_handle);
@@ -365,7 +365,7 @@ HRESULT RpcGetLoggedOnCount(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvSession_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[734],
                   hBinding,
@@ -384,7 +384,7 @@ HRESULT RpcGetSessionType(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvSession_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[782],
                   hBinding,
@@ -404,7 +404,7 @@ HRESULT RpcGetSessionInformationEx(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvSession_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[830],
                   hBinding,
@@ -420,7 +420,7 @@ VOID Opnum18NotUsedOnWire(
     /* [in] */ handle_t IDL_handle)
 {
 
-    NdrClientCall2(
+    RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvSession_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[884],
                   IDL_handle);
@@ -432,7 +432,7 @@ VOID Opnum19NotUsedOnWire(
     /* [in] */ handle_t IDL_handle)
 {
 
-    NdrClientCall2(
+    RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvSession_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[914],
                   IDL_handle);
@@ -444,7 +444,7 @@ VOID Opnum20NotUsedOnWire(
     /* [in] */ handle_t IDL_handle)
 {
 
-    NdrClientCall2(
+    RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvSession_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[944],
                   IDL_handle);
@@ -459,7 +459,7 @@ HRESULT RpcGetActivityId(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvSession_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[974],
                   hSession,
@@ -488,7 +488,7 @@ static const RPC_CLIENT_INTERFACE TermSrvNotification___RpcClientInterface =
     };
 RPC_IF_HANDLE TermSrvNotification_v1_0_c_ifspec = (RPC_IF_HANDLE)& TermSrvNotification___RpcClientInterface;
 
-extern const MIDL_STUB_DESC TermSrvNotification_StubDesc;
+static const MIDL_STUB_DESC TermSrvNotification_StubDesc;
 
 static RPC_BINDING_HANDLE TermSrvNotification__MIDL_AutoBindHandle;
 
@@ -502,7 +502,7 @@ HRESULT RpcWaitForSessionState(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvNotification_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[1024],
                   hBinding,
@@ -523,7 +523,7 @@ HRESULT RpcRegisterAsyncNotification(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvNotification_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[1078],
                   hBinding,
@@ -543,7 +543,7 @@ HRESULT RpcWaitAsyncNotification(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvNotification_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[1132],
                   hNotify,
@@ -560,7 +560,7 @@ HRESULT RpcUnRegisterAsyncNotification(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvNotification_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[1188],
                   phNotify);
@@ -588,7 +588,7 @@ static const RPC_CLIENT_INTERFACE TermSrvEnumeration___RpcClientInterface =
     };
 RPC_IF_HANDLE TermSrvEnumeration_v1_0_c_ifspec = (RPC_IF_HANDLE)& TermSrvEnumeration___RpcClientInterface;
 
-extern const MIDL_STUB_DESC TermSrvEnumeration_StubDesc;
+static const MIDL_STUB_DESC TermSrvEnumeration_StubDesc;
 
 static RPC_BINDING_HANDLE TermSrvEnumeration__MIDL_AutoBindHandle;
 
@@ -600,7 +600,7 @@ HRESULT RpcOpenEnum(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvEnumeration_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[1232],
                   hBinding,
@@ -616,7 +616,7 @@ HRESULT RpcCloseEnum(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvEnumeration_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[1274],
                   phEnum);
@@ -633,7 +633,7 @@ HRESULT RpcFilterByState(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvEnumeration_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[1318],
                   hEnum,
@@ -650,7 +650,7 @@ HRESULT RpcFilterByCallersName(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvEnumeration_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[1374],
                   hEnum);
@@ -666,7 +666,7 @@ HRESULT RpcEnumAddFilter(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvEnumeration_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[1418],
                   hEnum,
@@ -685,7 +685,7 @@ HRESULT RpcGetEnumResult(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvEnumeration_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[1468],
                   hEnum,
@@ -704,7 +704,7 @@ HRESULT RpcFilterBySessionType(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvEnumeration_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[1530],
                   hEnum,
@@ -718,7 +718,7 @@ VOID Opnum7NotUsedOnWire(
     /* [in] */ handle_t IDL_handle)
 {
 
-    NdrClientCall2(
+    RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvEnumeration_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[1580],
                   IDL_handle);
@@ -736,7 +736,7 @@ HRESULT RpcGetSessionIds(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvEnumeration_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[1610],
                   hBinding,
@@ -758,7 +758,7 @@ HRESULT RpcGetEnumResultEx(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvEnumeration_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[1670],
                   hEnum,
@@ -779,7 +779,7 @@ HRESULT RpcGetAllSessions(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvEnumeration_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[1732],
                   hBinding,
@@ -800,7 +800,7 @@ HRESULT RpcGetAllSessionsEx(
 
     CLIENT_CALL_RETURN _RetVal;
 
-    _RetVal = NdrClientCall2(
+    _RetVal = RPCRT4$NdrClientCall2(
                   ( PMIDL_STUB_DESC  )&TermSrvEnumeration_StubDesc,
                   (PFORMAT_STRING) &tspubrpc__MIDL_ProcFormatString.Format[1786],
                   hBinding,

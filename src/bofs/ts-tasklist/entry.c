@@ -1,5 +1,5 @@
 #include <windows.h>
-#include "ts-tasklist.h"
+#include "base.c"
 
 #ifdef WOW64
 #include "ms-tsts_legacy_c_x86.c"
@@ -7,9 +7,7 @@
 #include "ms-tsts_legacy_c_x64.c"
 #endif
 
-#ifdef BOF
-#include "beacon.h"
-#else
+#ifndef BOF
 #include <stdio.h>
 #include <sddl.h>
 #endif
@@ -27,7 +25,7 @@ EXTERN_C void __RPC_USER midl_user_free(void __RPC_FAR* ptr) {
 
 // adapted from
 // https://github.com/G0ldenGunSec/GetWebDAVStatus/blob/main/GetWebDAVStatus_BOF/src/Source.c
-int CheckPipeAccessibility(WCHAR** dispatch, LPWSTR lpwTarget) {
+int CheckPipeAccessibility(LPWSTR lpwTarget) {
 	char* pipeNameHead = "\\\\";
 	char* pipeNameTail = "\\pipe\\Ctx_WinStation_API_service";
 
@@ -47,21 +45,21 @@ int CheckPipeAccessibility(WCHAR** dispatch, LPWSTR lpwTarget) {
 	return pipeStatus;
 }
 
-void CloseServerHandle(WCHAR** dispatch, _In_ SERVER_HANDLE phServer) {
+void CloseServerHandle(_In_ SERVER_HANDLE phServer) {
 	DWORD pResult;
 	BOOLEAN result;
 	result = RpcWinStationCloseServer(phServer, &pResult);
 	if (result) {
-		PRINT(dispatch, "[>] RpcWinStationCloseServer successful\n");
+		internal_printf("[>] RpcWinStationCloseServer successful\n");
 	}
 	else {
-		PRINT(dispatch, "[!] RpcWinStationCloseServer failed with error code: %d\n", pResult);
+		internal_printf("[!] RpcWinStationCloseServer failed with error code: %d\n", pResult);
 	}
 }
  
 // modified from
 // https://github.com/outflanknl/C2-Tool-Collection/blob/8b7a73b5b40bf13e905fd69eb0573a88fa81e892/BOF/PetitPotam/SOURCE/PetitPotam.c#L223
-RPC_STATUS CreateBindingHandle(WCHAR** dispatch, _In_ LPWSTR lpwTarget, _Out_ RPC_BINDING_HANDLE* binding_handle) {
+RPC_STATUS CreateBindingHandle(_In_ LPWSTR lpwTarget, _Out_ RPC_BINDING_HANDLE* binding_handle) {
 	RPC_STATUS rStatus;
 	RPC_BINDING_HANDLE v5;
 	RPC_SECURITY_QOS SecurityQOS = { 0 };
@@ -85,7 +83,7 @@ RPC_STATUS CreateBindingHandle(WCHAR** dispatch, _In_ LPWSTR lpwTarget, _Out_ RP
 				v5 = Binding;
 				Binding = 0;
 				*binding_handle = v5;
-				PRINT(dispatch, "[>] RPC Binding successful\n");
+				internal_printf("[>] RPC Binding successful\n");
 			}
 		}
 	}
@@ -117,30 +115,30 @@ void FreeAllProcessesInfo(PTS_ALL_PROCESSES_INFO pTsAllProcessesInfo, BOUNDED_UL
     MIDL_user_free(pTsAllProcessesInfo);
 }
 
-void execute(WCHAR** dispatch, LPWSTR lpwTarget) {
+void execute(LPWSTR lpwTarget) {
 	WCHAR wcRPCTarget[BUF_SIZE] = L"\\\\";
 
 	RPC_BINDING_HANDLE bHandle;
 	RPC_STATUS rStatus = RPC_S_NO_BINDINGS;
 
 	MSVCRT$wcscat_s(wcRPCTarget, _countof(wcRPCTarget), lpwTarget);
-	PRINT(dispatch, "\n[>] Targeting %S\n", lpwTarget);
+	internal_printf("\n[>] Targeting %S\n", lpwTarget);
 
 	// beacon will crash if RPC binding is attempted and pipe is not accessible
 	// to "handle" this, we check if the pipe is accessible before attempting to bind
 	int pipeStatus = 0;
-	pipeStatus = CheckPipeAccessibility(dispatch, lpwTarget);
+	pipeStatus = CheckPipeAccessibility(lpwTarget);
 	if (pipeStatus == 0) {
-		PRINT(dispatch, "[!] Pipe not accessible\n");
+		internal_printf("[!] Pipe not accessible\n");
 		return;
 	}
 	else {
-		PRINT(dispatch, "[>] Pipe accessible\n");
+		internal_printf("[>] Pipe accessible\n");
 	}
 
-	rStatus = CreateBindingHandle(dispatch, wcRPCTarget, &bHandle);
+	rStatus = CreateBindingHandle(wcRPCTarget, &bHandle);
 	if (rStatus != RPC_S_OK) {
-		PRINT(dispatch, "[!] RPC Binding failed...\n");
+		internal_printf("[!] RPC Binding failed...\n");
 		return;
 	}	
 
@@ -152,11 +150,11 @@ void execute(WCHAR** dispatch, LPWSTR lpwTarget) {
 	result = RpcWinStationOpenServer(bHandle, &pResult, &phServer);
 
 	if (!result) {
-		PRINT(dispatch, "[!] RpcWinStationOpenServer failed with error code: %d\n", pResult);
+		internal_printf("[!] RpcWinStationOpenServer failed with error code: %d\n", pResult);
 		return;
 	}
 
-	PRINT(dispatch, "[>] RpcWinStationOpenServer successful\n");
+	internal_printf("[>] RpcWinStationOpenServer successful\n");
 
 	// Make call to get process info
 	ULONG level = 0;
@@ -165,24 +163,24 @@ void execute(WCHAR** dispatch, LPWSTR lpwTarget) {
 
 	result = RpcWinStationGetAllProcesses(phServer, &pResult, level, &numberOfProcesses, &ppTsAllProcessesInfo);
 	if (!result) {
-		PRINT(dispatch, "[!] RpcWinStationGetAllProcesses failed with error code: %d\n", pResult);
-		CloseServerHandle(dispatch, phServer);
+		internal_printf("[!] RpcWinStationGetAllProcesses failed with error code: %d\n", pResult);
+		CloseServerHandle(phServer);
 		rStatus = RPCRT4$RpcBindingFree(&bHandle);
 		return;
 	}
 
-	PRINT(dispatch, "[>] RpcWinStationGetAllProcesses successful\n");
+	internal_printf("[>] RpcWinStationGetAllProcesses successful\n");
 
 	// handle cleanup
-	CloseServerHandle(dispatch, phServer);
+	CloseServerHandle(phServer);
     rStatus = RPCRT4$RpcBindingFree(&bHandle);
 
 	
 	if (numberOfProcesses == 0) {
-		PRINT(dispatch, "\n[!] 0 processes returned - likely insufficent permissions\n");
+		internal_printf("\n[!] 0 processes returned - likely insufficent permissions\n");
 		return;
 	} else {
-		PRINT(dispatch, "\n[+] Number of processes: %d\n\n", numberOfProcesses);
+		internal_printf("\n[+] Number of processes: %d\n\n", numberOfProcesses);
 	}
 	
 	// parse process info
@@ -190,31 +188,29 @@ void execute(WCHAR** dispatch, LPWSTR lpwTarget) {
     WCHAR imageName[MAX_PATH];
 
 	const char *headers[] = {"PPID", "PID", "Image Name", "SessionId", "SID"};
-	PRINT(dispatch, "%6s%6s %-50s %-10s %-50s\n", headers[0], headers[1], headers[2], headers[3], headers[4]);
+	internal_printf("%6s%6s %-50s %-10s %-50s\n", headers[0], headers[1], headers[2], headers[3], headers[4]);
 
-	PRINT(dispatch, "----------------------------------------------------------------------------------------------------------------------------\n");
+	internal_printf("----------------------------------------------------------------------------------------------------------------------------\n");
 
     for (ULONG i = 0; i < numberOfProcesses; i++) {
         pCurrentProcessInfo = ppTsAllProcessesInfo[i].pTsProcessInfo;
 
 		LPWSTR lpSidString = L"";
 
-		#ifndef WOW64
 		if (ADVAPI32$IsValidSid((PSID)ppTsAllProcessesInfo[i].pSid)) {
 			ADVAPI32$ConvertSidToStringSidW((PSID)ppTsAllProcessesInfo[i].pSid, &lpSidString);
 		}
-		#endif
 
         if (pCurrentProcessInfo->ImageName.Length > 0 && pCurrentProcessInfo->ImageName.Buffer) {
             MSVCRT$wcsncpy_s(imageName, MAX_PATH, pCurrentProcessInfo->ImageName.Buffer, pCurrentProcessInfo->ImageName.Length / sizeof(WCHAR));
             imageName[pCurrentProcessInfo->ImageName.Length / sizeof(WCHAR)] = L'\0';
-			PRINT(dispatch, "%6d%6d %-50S %-10d %-50S\n", pCurrentProcessInfo->InheritedFromUniqueProcessId, pCurrentProcessInfo->UniqueProcessId, imageName, pCurrentProcessInfo->SessionId, lpSidString);	
+			internal_printf("%6d%6d %-50S %-10d %-50S\n", pCurrentProcessInfo->InheritedFromUniqueProcessId, pCurrentProcessInfo->UniqueProcessId, imageName, pCurrentProcessInfo->SessionId, lpSidString);	
 		}
 	}
 
 	FreeAllProcessesInfo(ppTsAllProcessesInfo, numberOfProcesses);
 
-	PRINT(dispatch, "\n[>] Done\n");
+	internal_printf("\n[>] Done\n");
 	return;
 
 }
@@ -229,12 +225,19 @@ void go(IN PCHAR Args, IN ULONG Length) {
 	lpwTarget = (WCHAR*)BeaconDataExtract(&parser, NULL);
 
 	if (lpwTarget == NULL) {
-		PRINT(NULL, "[!] Missing arguments\n");
+		internal_printf(NULL, "[!] Missing arguments\n");
 		return;
 	}
 
-	execute(NULL, lpwTarget);
+	if(!bofstart())
+	{
+		return;
+	}
 
+
+	execute(lpwTarget);
+
+	printoutput(TRUE);
 	return;
 }
 
@@ -242,7 +245,7 @@ void go(IN PCHAR Args, IN ULONG Length) {
 
 int main(int argc, char* argv[]) {
 	if (argc < 2) {
-		PRINT(NULL, "[!] Missing arguments\n");
+		internal_printf(NULL, "[!] Missing arguments\n");
 		return 0;
 	}
 
@@ -254,7 +257,7 @@ int main(int argc, char* argv[]) {
 
     KERNEL32$MultiByteToWideChar(CP_UTF8, 0, target, -1, lpwTarget, requiredSize);
 
-	execute(NULL, lpwTarget);
+	execute(lpwTarget);
 	return 0;
 }
 
