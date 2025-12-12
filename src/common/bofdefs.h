@@ -18,6 +18,7 @@ WINBASEAPI SIZE_T WINAPI MSVCRT$strlen(const char* str);
 WINBASEAPI void* WINAPI MSVCRT$strcpy(const char* dest, const char* source);
 WINBASEAPI void* WINAPI MSVCRT$strcat(const char* dest, const char* source);
 WINBASEAPI int __cdecl MSVCRT$_snprintf(char *buffer, size_t count, const char *format, ...);
+WINBASEAPI int __cdecl MSVCRT$_snwprintf(wchar_t *buffer, size_t count, const wchar_t *format, ...);
 WINBASEAPI int __cdecl MSVCRT$vsnprintf(char *buffer, size_t count, const char *format, va_list argptr);
 WINBASEAPI void __cdecl MSVCRT$srand(unsigned int seed);
 WINBASEAPI time_t __cdecl MSVCRT$time(time_t *timer);
@@ -33,6 +34,11 @@ WINBASEAPI int WINAPI KERNEL32$WideCharToMultiByte(UINT CodePage, DWORD dwFlags,
 WINBASEAPI int WINAPI KERNEL32$MultiByteToWideChar(UINT CodePage, DWORD dwFlags, LPCCH lpMultiByteStr, int cbMultiByte, LPWSTR lpWideCharStr, int cchWideChar);
 WINBASEAPI BOOL WINAPI KERNEL32$FileTimeToSystemTime(const FILETIME *lpFileTime, LPSYSTEMTIME lpSystemTime);
 WINBASEAPI BOOL WINAPI KERNEL32$SystemTimeToTzSpecificLocalTime(const TIME_ZONE_INFORMATION *lpTimeZoneInformation, const SYSTEMTIME *lpUniversalTime, LPSYSTEMTIME lpLocalTime);
+WINBASEAPI DWORD WINAPI KERNEL32$GetFileAttributesW(LPCWSTR lpFileName);
+WINBASEAPI HANDLE WINAPI KERNEL32$FindFirstFileW(LPCWSTR lpFileName, LPWIN32_FIND_DATAW lpFindFileData);
+WINBASEAPI BOOL WINAPI KERNEL32$FindNextFileW(HANDLE hFindFile, LPWIN32_FIND_DATAW lpFindFileData);
+WINBASEAPI BOOL WINAPI KERNEL32$FindClose(HANDLE hFindFile);
+WINBASEAPI DWORD WINAPI KERNEL32$GetEnvironmentVariableW(LPCWSTR lpName, LPWSTR lpBuffer, DWORD nSize);
 
 //RPCRT4
 DECLSPEC_IMPORT RPC_STATUS WINAPI RPCRT4$RpcBindingFromStringBindingW(RPC_WSTR StringBinding, RPC_BINDING_HANDLE *Binding);
@@ -45,6 +51,11 @@ DECLSPEC_IMPORT CLIENT_CALL_RETURN RPC_VAR_ENTRY RPCRT4$NdrClientCall2(PMIDL_STU
 //ADVAPI32
 WINBASEAPI BOOL WINAPI ADVAPI32$ConvertSidToStringSidW(PSID Sid, LPWSTR *StringSid);
 WINBASEAPI BOOL WINAPI ADVAPI32$IsValidSid(PSID pSid);
+
+//OLE32
+WINBASEAPI HRESULT WINAPI OLE32$CoInitializeEx(LPVOID pvReserved, DWORD dwCoInit);
+WINBASEAPI HRESULT WINAPI OLE32$CoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID *ppv);
+WINBASEAPI void WINAPI OLE32$CoUninitialize(void);
 
 
 #define intAlloc(size) KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, size)
@@ -69,6 +80,7 @@ WINBASEAPI BOOL WINAPI ADVAPI32$IsValidSid(PSID pSid);
 #define MSVCRT$strcpy strcpy
 #define MSVCRT$strcat strcat
 #define MSVCRT$_snprintf _snprintf
+#define MSVCRT$_snwprintf _snwprintf
 #define MSVCRT$vsnprintf vsnprintf
 #define MSVCRT$srand srand
 #define MSVCRT$time time
@@ -83,6 +95,11 @@ WINBASEAPI BOOL WINAPI ADVAPI32$IsValidSid(PSID pSid);
 #define KERNEL32$MultiByteToWideChar MultiByteToWideChar
 #define KERNEL32$FileTimeToSystemTime FileTimeToSystemTime
 #define KERNEL32$SystemTimeToTzSpecificLocalTime SystemTimeToTzSpecificLocalTime
+#define KERNEL32$GetFileAttributesW GetFileAttributesW
+#define KERNEL32$FindFirstFileW FindFirstFileW
+#define KERNEL32$FindNextFileW FindNextFileW
+#define KERNEL32$FindClose FindClose
+#define KERNEL32$GetEnvironmentVariableW GetEnvironmentVariableW
 
 //RPCRT4
 #define RPCRT4$RpcBindingFromStringBindingW RpcBindingFromStringBindingW
@@ -95,5 +112,10 @@ WINBASEAPI BOOL WINAPI ADVAPI32$IsValidSid(PSID pSid);
 //ADVAPI32
 #define ADVAPI32$ConvertSidToStringSidW ConvertSidToStringSidW
 #define ADVAPI32$IsValidSid IsValidSid
+
+//OLE32
+#define OLE32$CoInitializeEx CoInitializeEx
+#define OLE32$CoCreateInstance CoCreateInstance
+#define OLE32$CoUninitialize CoUninitialize
 
 #endif
