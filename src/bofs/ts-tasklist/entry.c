@@ -49,10 +49,7 @@ void CloseServerHandle(_In_ SERVER_HANDLE phServer) {
 	DWORD pResult;
 	BOOLEAN result;
 	result = RpcWinStationCloseServer(phServer, &pResult);
-	if (result) {
-		internal_printf("[>] RpcWinStationCloseServer successful\n");
-	}
-	else {
+	if (!result) {
 		internal_printf("[!] RpcWinStationCloseServer failed with error code: %d\n", pResult);
 	}
 }
@@ -83,7 +80,7 @@ RPC_STATUS CreateBindingHandle(_In_ LPWSTR lpwTarget, _Out_ RPC_BINDING_HANDLE* 
 				v5 = Binding;
 				Binding = 0;
 				*binding_handle = v5;
-				internal_printf("[>] RPC Binding successful\n");
+				//internal_printf("[>] RPC Binding successful\n");
 			}
 		}
 	}
@@ -132,9 +129,9 @@ void execute(LPWSTR lpwTarget) {
 		internal_printf("[!] Pipe not accessible\n");
 		return;
 	}
-	else {
-		internal_printf("[>] Pipe accessible\n");
-	}
+	//else {
+	//	internal_printf("[>] Pipe accessible\n");
+	//}
 
 	rStatus = CreateBindingHandle(wcRPCTarget, &bHandle);
 	if (rStatus != RPC_S_OK) {
@@ -154,7 +151,7 @@ void execute(LPWSTR lpwTarget) {
 		return;
 	}
 
-	internal_printf("[>] RpcWinStationOpenServer successful\n");
+	//internal_printf("[>] RpcWinStationOpenServer successful\n");
 
 	// Make call to get process info
 	ULONG level = 0;
@@ -169,7 +166,7 @@ void execute(LPWSTR lpwTarget) {
 		return;
 	}
 
-	internal_printf("[>] RpcWinStationGetAllProcesses successful\n");
+	//internal_printf("[>] RpcWinStationGetAllProcesses successful\n");
 
 	// handle cleanup
 	CloseServerHandle(phServer);

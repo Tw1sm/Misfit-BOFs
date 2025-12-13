@@ -121,7 +121,7 @@ RPC_STATUS CreateBindingHandle(_In_ LPWSTR lpwTarget, _Out_ RPC_BINDING_HANDLE* 
 				v5 = Binding;
 				Binding = 0;
 				*binding_handle = v5;
-				internal_printf("[>] RPC Binding successful\n");
+				//internal_printf("[>] RPC Binding successful\n");
 			}
 		}
 	}
@@ -154,9 +154,9 @@ void execute(LPWSTR lpwTarget) {
 		internal_printf("[!] Pipe not accessible\n");
 		return;
 	}
-	else {
-		internal_printf("[>] Pipe accessible\n");
-	}
+	//else {
+	//	internal_printf("[>] Pipe accessible\n");
+	//}
 
 	rStatus = CreateBindingHandle(wcRPCTarget, &bHandle);
 	if (rStatus != RPC_S_OK) {
@@ -172,9 +172,9 @@ void execute(LPWSTR lpwTarget) {
 
 	hr = RpcOpenEnum(bHandle, &hEnum);
 	if(hr == S_OK) {
-		internal_printf("[>] RpcOpenEnum successful\n");
-
+		//internal_printf("[>] RpcOpenEnum successful\n");
 		//internal_printf("[>] Calling RpcGetEnumResultEx with Level %d...\n", Level);
+		
 		hr = RpcGetEnumResultEx( hEnum, &pAllSessions, Level, &Entries );
 		
 		//internal_printf("[>] RpcGetEnumResultEx returned hr=0x%08x, Entries=%d\n", hr, Entries);
