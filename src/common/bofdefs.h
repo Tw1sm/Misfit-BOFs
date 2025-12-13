@@ -39,6 +39,7 @@ WINBASEAPI HANDLE WINAPI KERNEL32$FindFirstFileW(LPCWSTR lpFileName, LPWIN32_FIN
 WINBASEAPI BOOL WINAPI KERNEL32$FindNextFileW(HANDLE hFindFile, LPWIN32_FIND_DATAW lpFindFileData);
 WINBASEAPI BOOL WINAPI KERNEL32$FindClose(HANDLE hFindFile);
 WINBASEAPI DWORD WINAPI KERNEL32$GetEnvironmentVariableW(LPCWSTR lpName, LPWSTR lpBuffer, DWORD nSize);
+WINBASEAPI UINT WINAPI KERNEL32$GetSystemDirectoryW(LPWSTR lpBuffer, UINT uSize);
 
 //RPCRT4
 DECLSPEC_IMPORT RPC_STATUS WINAPI RPCRT4$RpcBindingFromStringBindingW(RPC_WSTR StringBinding, RPC_BINDING_HANDLE *Binding);
@@ -56,6 +57,9 @@ WINBASEAPI BOOL WINAPI ADVAPI32$IsValidSid(PSID pSid);
 WINBASEAPI HRESULT WINAPI OLE32$CoInitializeEx(LPVOID pvReserved, DWORD dwCoInit);
 WINBASEAPI HRESULT WINAPI OLE32$CoCreateInstance(REFCLSID rclsid, LPUNKNOWN pUnkOuter, DWORD dwClsContext, REFIID riid, LPVOID *ppv);
 WINBASEAPI void WINAPI OLE32$CoUninitialize(void);
+WINBASEAPI HRESULT WINAPI OLE32$CoGetObject(LPCWSTR pszName, BIND_OPTS *pBindOptions, REFIID riid, void **ppv);
+WINBASEAPI HRESULT WINAPI OLE32$StringFromGUID2(REFGUID rguid, LPOLESTR lpsz, int cchMax);
+WINBASEAPI HRESULT WINAPI OLE32$CoTaskMemFree(LPVOID pv);
 
 
 #define intAlloc(size) KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, size)
@@ -100,6 +104,7 @@ WINBASEAPI void WINAPI OLE32$CoUninitialize(void);
 #define KERNEL32$FindNextFileW FindNextFileW
 #define KERNEL32$FindClose FindClose
 #define KERNEL32$GetEnvironmentVariableW GetEnvironmentVariableW
+#define KERNEL32$GetSystemDirectoryW GetSystemDirectoryW
 
 //RPCRT4
 #define RPCRT4$RpcBindingFromStringBindingW RpcBindingFromStringBindingW
@@ -117,5 +122,8 @@ WINBASEAPI void WINAPI OLE32$CoUninitialize(void);
 #define OLE32$CoInitializeEx CoInitializeEx
 #define OLE32$CoCreateInstance CoCreateInstance
 #define OLE32$CoUninitialize CoUninitialize
+#define OLE32$CoGetObject CoGetObject
+#define OLE32$StringFromGUID2 StringFromGUID2
+#define OLE32$CoTaskMemFree CoTaskMemFree
 
 #endif
