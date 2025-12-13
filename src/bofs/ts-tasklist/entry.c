@@ -222,7 +222,7 @@ void go(IN PCHAR Args, IN ULONG Length) {
 	lpwTarget = (WCHAR*)BeaconDataExtract(&parser, NULL);
 
 	if (lpwTarget == NULL) {
-		internal_printf(NULL, "[!] Missing arguments\n");
+		internal_printf("[!] Missing arguments\n");
 		return;
 	}
 
@@ -242,7 +242,7 @@ void go(IN PCHAR Args, IN ULONG Length) {
 
 int main(int argc, char* argv[]) {
 	if (argc < 2) {
-		internal_printf(NULL, "[!] Missing arguments\n");
+		internal_printf("[!] Missing arguments\n");
 		return 0;
 	}
 

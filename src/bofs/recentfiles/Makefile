@@ -22,11 +22,11 @@ bof_86:
 	mv $(BOFNAME).x86.o ../../../bofs/$(BOFNAME)
 
 exe_64: 
-	$(CC_x64) $(CFLAGS) $(COMINCLUDE) entry.c -o $(BOFNAME).x64.exe $(LIBS)
+	$(CC_x64) $(COMINCLUDE) entry.c -o $(BOFNAME).x64.exe $(LIBS)
 	$(STRIP_x64) --strip-all $(BOFNAME).x64.exe
 
 exe_86: 
-	$(CC_x86) $(CFLAGS) $(COMINCLUDE) entry.c -o $(BOFNAME).x86.exe $(LIBS) -DWOW64
+	$(CC_x86) $(COMINCLUDE) entry.c -o $(BOFNAME).x86.exe $(LIBS) -DWOW64
 	$(STRIP_x86) --strip-all $(BOFNAME).x86.exe
 
 scp:

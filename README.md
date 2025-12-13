@@ -1,5 +1,7 @@
 # Misfit BOFs
-Miscellaneous BOFs created during ops. Either don't fit existing repos or the code is too ugly to PR.
+Miscellaneous BOFs created during ops. Code here probably doesn't fit with existing repos or is manually written and too ugly to PR, or is pure AI slop.
+
+Individual READMEs in the `src/bofs/*/` folders.
 
 ## References
 - [c2-tool-collection](https://github.com/outflanknl/C2-Tool-Collection/tree/main/BOF/PetitPotam) (PetitPotam BOF)
