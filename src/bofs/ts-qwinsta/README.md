@@ -7,7 +7,7 @@ Relies upon the `Ctx_WinStation_API_service` named pipe.
 
 ## Usage
 ```
-ts-tasklist <target_host>
+ts-tasklist [target_host]
 
 Args:
 - target_host: wide string/Z

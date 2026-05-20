@@ -7,7 +7,7 @@ Relies upon the `LSM_API_service` named pipe.
 
 ## Usage
 ```
-ts-qwinsta <target_host>
+ts-qwinsta [target_host]
 
 Args:
 - target_host: wide string/Z
