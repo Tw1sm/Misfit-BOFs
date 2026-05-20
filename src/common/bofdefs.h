@@ -9,11 +9,13 @@
 
 //MSVCRT
 WINBASEAPI void *__cdecl MSVCRT$memcpy(void * __restrict__ _Dst,const void * __restrict__ _Src,size_t _MaxCount);
+WINBASEAPI void *__cdecl MSVCRT$memset(void *_Dst, int _Val, size_t _Size);
 WINBASEAPI wchar_t *__cdecl MSVCRT$wcscat_s(wchar_t *strDestination, size_t numberOfElements, const wchar_t *strSource);
 WINBASEAPI void* __cdecl MSVCRT$malloc( size_t size);
 WINBASEAPI void* __cdecl MSVCRT$calloc(size_t num, size_t size);
 WINBASEAPI void __cdecl MSVCRT$free( void* memblock);
 WINBASEAPI errno_t __cdecl MSVCRT$wcsncpy_s(wchar_t *strDest, size_t numberOfElements, const wchar_t *strSource, size_t count);
+WINBASEAPI size_t __cdecl MSVCRT$wcslen(const wchar_t *str);
 WINBASEAPI SIZE_T WINAPI MSVCRT$strlen(const char* str);
 WINBASEAPI void* WINAPI MSVCRT$strcpy(const char* dest, const char* source);
 WINBASEAPI void* WINAPI MSVCRT$strcat(const char* dest, const char* source);
@@ -40,6 +42,7 @@ WINBASEAPI BOOL WINAPI KERNEL32$FindNextFileW(HANDLE hFindFile, LPWIN32_FIND_DAT
 WINBASEAPI BOOL WINAPI KERNEL32$FindClose(HANDLE hFindFile);
 WINBASEAPI DWORD WINAPI KERNEL32$GetEnvironmentVariableW(LPCWSTR lpName, LPWSTR lpBuffer, DWORD nSize);
 WINBASEAPI UINT WINAPI KERNEL32$GetSystemDirectoryW(LPWSTR lpBuffer, UINT uSize);
+WINBASEAPI DWORD WINAPI KERNEL32$GetLastError(VOID);
 
 //RPCRT4
 DECLSPEC_IMPORT RPC_STATUS WINAPI RPCRT4$RpcBindingFromStringBindingW(RPC_WSTR StringBinding, RPC_BINDING_HANDLE *Binding);
@@ -48,10 +51,34 @@ DECLSPEC_IMPORT RPC_STATUS WINAPI RPCRT4$RpcBindingSetAuthInfoExW(RPC_BINDING_HA
 DECLSPEC_IMPORT RPC_STATUS WINAPI RPCRT4$RpcBindingFree(RPC_BINDING_HANDLE *Binding);
 DECLSPEC_IMPORT RPC_STATUS WINAPI RPCRT4$RpcStringFreeW(RPC_WSTR *String);
 DECLSPEC_IMPORT CLIENT_CALL_RETURN RPC_VAR_ENTRY RPCRT4$NdrClientCall2(PMIDL_STUB_DESC pStubDescriptor, PFORMAT_STRING  pFormat, ...);
+DECLSPEC_IMPORT RPC_STATUS WINAPI RPCRT4$RpcBindingInqAuthInfoExW(RPC_BINDING_HANDLE Binding, RPC_WSTR *ServerPrincName, unsigned long *AuthnLevel, unsigned long *AuthnSvc, RPC_AUTH_IDENTITY_HANDLE *AuthIdentity, unsigned long *AuthzSvc, ULONG RpcQosVersion, RPC_SECURITY_QOS *SecurityQOS);
+DECLSPEC_IMPORT RPC_STATUS WINAPI RPCRT4$I_RpcBindingInqSecurityContext(RPC_BINDING_HANDLE Binding, void **SecurityContextHandle);
+DECLSPEC_IMPORT RPC_STATUS WINAPI RPCRT4$RpcBindingSetOption(RPC_BINDING_HANDLE Binding, unsigned long Option, ULONG_PTR OptionValue);
 
 //ADVAPI32
 WINBASEAPI BOOL WINAPI ADVAPI32$ConvertSidToStringSidW(PSID Sid, LPWSTR *StringSid);
 WINBASEAPI BOOL WINAPI ADVAPI32$IsValidSid(PSID pSid);
+WINBASEAPI BOOL WINAPI ADVAPI32$CryptAcquireContextW(HCRYPTPROV *phProv, LPCWSTR szContainer, LPCWSTR szProvider, DWORD dwProvType, DWORD dwFlags);
+WINBASEAPI BOOL WINAPI ADVAPI32$CryptCreateHash(HCRYPTPROV hProv, ALG_ID Algid, HCRYPTKEY hKey, DWORD dwFlags, HCRYPTHASH *phHash);
+WINBASEAPI BOOL WINAPI ADVAPI32$CryptHashData(HCRYPTHASH hHash, const BYTE *pbData, DWORD dwDataLen, DWORD dwFlags);
+WINBASEAPI BOOL WINAPI ADVAPI32$CryptDeriveKey(HCRYPTPROV hProv, ALG_ID Algid, HCRYPTHASH hHash, DWORD dwFlags, HCRYPTKEY *phKey);
+WINBASEAPI BOOL WINAPI ADVAPI32$CryptDecrypt(HCRYPTKEY hKey, HCRYPTHASH hHash, BOOL Final, DWORD dwFlags, BYTE *pbData, DWORD *pdwDataLen);
+WINBASEAPI BOOL WINAPI ADVAPI32$CryptImportKey(HCRYPTPROV hProv, const BYTE *pbData, DWORD dwDataLen, HCRYPTKEY hPubKey, DWORD dwFlags, HCRYPTKEY *phKey);
+WINBASEAPI BOOL WINAPI ADVAPI32$CryptDestroyHash(HCRYPTHASH hHash);
+WINBASEAPI BOOL WINAPI ADVAPI32$CryptDestroyKey(HCRYPTKEY hKey);
+WINBASEAPI BOOL WINAPI ADVAPI32$CryptReleaseContext(HCRYPTPROV hProv, DWORD dwFlags);
+WINBASEAPI BOOL WINAPI ADVAPI32$CryptGetHashParam(HCRYPTHASH hHash, DWORD dwParam, BYTE *pbData, DWORD *pdwDataLen, DWORD dwFlags);
+WINBASEAPI BOOL WINAPI ADVAPI32$CryptSetKeyParam(HCRYPTKEY hKey, DWORD dwParam, const BYTE *pbData, DWORD dwFlags);
+
+typedef struct _CRYPTO_BUFFER {
+    DWORD Length;
+    DWORD MaximumLength;
+    PVOID Buffer;
+} CRYPTO_BUFFER, *PCRYPTO_BUFFER;
+
+DECLSPEC_IMPORT NTSTATUS WINAPI ADVAPI32$SystemFunction025(PCRYPTO_BUFFER data, PCRYPTO_BUFFER key);
+DECLSPEC_IMPORT NTSTATUS WINAPI ADVAPI32$SystemFunction027(PCRYPTO_BUFFER data, PCRYPTO_BUFFER key);
+DECLSPEC_IMPORT NTSTATUS WINAPI ADVAPI32$SystemFunction032(PCRYPTO_BUFFER data, PCRYPTO_BUFFER key);
 
 //OLE32
 WINBASEAPI HRESULT WINAPI OLE32$CoInitializeEx(LPVOID pvReserved, DWORD dwCoInit);
@@ -75,11 +102,13 @@ WINBASEAPI HRESULT WINAPI OLE32$CoTaskMemFree(LPVOID pv);
 
 //MSVCRT
 #define MSVCRT$memcpy memcpy
+#define MSVCRT$memset memset
 #define MSVCRT$wcscat_s wcscat_s
 #define MSVCRT$malloc malloc
 #define MSVCRT$calloc calloc
 #define MSVCRT$free free
 #define MSVCRT$wcsncpy_s wcsncpy_s
+#define MSVCRT$wcslen wcslen
 #define MSVCRT$strlen strlen
 #define MSVCRT$strcpy strcpy
 #define MSVCRT$strcat strcat
@@ -105,6 +134,7 @@ WINBASEAPI HRESULT WINAPI OLE32$CoTaskMemFree(LPVOID pv);
 #define KERNEL32$FindClose FindClose
 #define KERNEL32$GetEnvironmentVariableW GetEnvironmentVariableW
 #define KERNEL32$GetSystemDirectoryW GetSystemDirectoryW
+#define KERNEL32$GetLastError GetLastError
 
 //RPCRT4
 #define RPCRT4$RpcBindingFromStringBindingW RpcBindingFromStringBindingW
@@ -113,10 +143,27 @@ WINBASEAPI HRESULT WINAPI OLE32$CoTaskMemFree(LPVOID pv);
 #define RPCRT4$RpcBindingFree RpcBindingFree
 #define RPCRT4$RpcStringFreeW RpcStringFreeW
 #define RPCRT4$NdrClientCall2 NdrClientCall2
+#define RPCRT4$RpcBindingInqAuthInfoExW RpcBindingInqAuthInfoExW
+#define RPCRT4$I_RpcBindingInqSecurityContext I_RpcBindingInqSecurityContext
+#define RPCRT4$RpcBindingSetOption RpcBindingSetOption
 
 //ADVAPI32
 #define ADVAPI32$ConvertSidToStringSidW ConvertSidToStringSidW
 #define ADVAPI32$IsValidSid IsValidSid
+#define ADVAPI32$CryptAcquireContextW CryptAcquireContextW
+#define ADVAPI32$CryptCreateHash CryptCreateHash
+#define ADVAPI32$CryptHashData CryptHashData
+#define ADVAPI32$CryptDeriveKey CryptDeriveKey
+#define ADVAPI32$CryptDecrypt CryptDecrypt
+#define ADVAPI32$CryptImportKey CryptImportKey
+#define ADVAPI32$CryptDestroyHash CryptDestroyHash
+#define ADVAPI32$CryptDestroyKey CryptDestroyKey
+#define ADVAPI32$CryptReleaseContext CryptReleaseContext
+#define ADVAPI32$CryptGetHashParam CryptGetHashParam
+#define ADVAPI32$CryptSetKeyParam CryptSetKeyParam
+#define ADVAPI32$SystemFunction025 SystemFunction025
+#define ADVAPI32$SystemFunction027 SystemFunction027
+#define ADVAPI32$SystemFunction032 SystemFunction032
 
 //OLE32
 #define OLE32$CoInitializeEx CoInitializeEx
