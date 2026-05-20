@@ -40,6 +40,11 @@ WINBASEAPI BOOL WINAPI KERNEL32$FindNextFileW(HANDLE hFindFile, LPWIN32_FIND_DAT
 WINBASEAPI BOOL WINAPI KERNEL32$FindClose(HANDLE hFindFile);
 WINBASEAPI DWORD WINAPI KERNEL32$GetEnvironmentVariableW(LPCWSTR lpName, LPWSTR lpBuffer, DWORD nSize);
 WINBASEAPI UINT WINAPI KERNEL32$GetSystemDirectoryW(LPWSTR lpBuffer, UINT uSize);
+DECLSPEC_IMPORT HANDLE WINAPI KERNEL32$GetCurrentProcess( VOID );
+DECLSPEC_IMPORT HANDLE WINAPI KERNEL32$GetCurrentThread( VOID );
+DECLSPEC_IMPORT WINBOOL WINAPI KERNEL32$CloseHandle( HANDLE hObject );
+DECLSPEC_IMPORT DWORD WINAPI KERNEL32$GetLastError( VOID );
+DECLSPEC_IMPORT VOID WINAPI KERNEL32$SetLastError( DWORD dwErrCode );
 
 //RPCRT4
 DECLSPEC_IMPORT RPC_STATUS WINAPI RPCRT4$RpcBindingFromStringBindingW(RPC_WSTR StringBinding, RPC_BINDING_HANDLE *Binding);
@@ -51,6 +56,10 @@ DECLSPEC_IMPORT CLIENT_CALL_RETURN RPC_VAR_ENTRY RPCRT4$NdrClientCall2(PMIDL_STU
 
 //ADVAPI32
 WINBASEAPI BOOL WINAPI ADVAPI32$ConvertSidToStringSidW(PSID Sid, LPWSTR *StringSid);
+DECLSPEC_IMPORT WINBOOL  WINAPI ADVAPI32$OpenThreadToken( HANDLE ThreadHandle, DWORD DesiredAccess, WINBOOL OpenAsSelf, PHANDLE TokenHandle );
+DECLSPEC_IMPORT WINBOOL  WINAPI ADVAPI32$OpenProcessToken( HANDLE ProcessHandle, DWORD DesiredAccess, PHANDLE TokenHandle );
+DECLSPEC_IMPORT WINBOOL  WINAPI ADVAPI32$LookupPrivilegeValueA( LPCSTR lpSystemName, LPCSTR lpName, PLUID lpLuid );
+DECLSPEC_IMPORT WINBOOL  WINAPI ADVAPI32$AdjustTokenPrivileges( HANDLE TokenHandle, WINBOOL DisableAllPrivileges, PTOKEN_PRIVILEGES NewState, DWORD BufferLength, PTOKEN_PRIVILEGES PreviousState, PDWORD ReturnLength );
 WINBASEAPI BOOL WINAPI ADVAPI32$IsValidSid(PSID pSid);
 
 //OLE32
@@ -60,6 +69,9 @@ WINBASEAPI void WINAPI OLE32$CoUninitialize(void);
 WINBASEAPI HRESULT WINAPI OLE32$CoGetObject(LPCWSTR pszName, BIND_OPTS *pBindOptions, REFIID riid, void **ppv);
 WINBASEAPI HRESULT WINAPI OLE32$StringFromGUID2(REFGUID rguid, LPOLESTR lpsz, int cchMax);
 WINBASEAPI HRESULT WINAPI OLE32$CoTaskMemFree(LPVOID pv);
+
+//USER32
+DECLSPEC_IMPORT WINBOOL  WINAPI USER32$ExitWindowsEx( UINT uFlags, DWORD dwReason );
 
 
 #define intAlloc(size) KERNEL32$HeapAlloc(KERNEL32$GetProcessHeap(), HEAP_ZERO_MEMORY, size)
@@ -105,6 +117,11 @@ WINBASEAPI HRESULT WINAPI OLE32$CoTaskMemFree(LPVOID pv);
 #define KERNEL32$FindClose FindClose
 #define KERNEL32$GetEnvironmentVariableW GetEnvironmentVariableW
 #define KERNEL32$GetSystemDirectoryW GetSystemDirectoryW
+#define KERNEL32$GetCurrentProcess GetCurrentProcess
+#define KERNEL32$GetCurrentThread GetCurrentThread
+#define KERNEL32$CloseHandle CloseHandle
+#define KERNEL32$GetLastError GetLastError
+#define KERNEL32$SetLastError SetLastError
 
 //RPCRT4
 #define RPCRT4$RpcBindingFromStringBindingW RpcBindingFromStringBindingW
@@ -117,6 +134,10 @@ WINBASEAPI HRESULT WINAPI OLE32$CoTaskMemFree(LPVOID pv);
 //ADVAPI32
 #define ADVAPI32$ConvertSidToStringSidW ConvertSidToStringSidW
 #define ADVAPI32$IsValidSid IsValidSid
+#define ADVAPI32$OpenThreadToken OpenThreadToken
+#define ADVAPI32$OpenProcessToken OpenProcessToken
+#define ADVAPI32$LookupPrivilegeValueA LookupPrivilegeValueA
+#define ADVAPI32$AdjustTokenPrivileges AdjustTokenPrivileges
 
 //OLE32
 #define OLE32$CoInitializeEx CoInitializeEx
@@ -125,5 +146,8 @@ WINBASEAPI HRESULT WINAPI OLE32$CoTaskMemFree(LPVOID pv);
 #define OLE32$CoGetObject CoGetObject
 #define OLE32$StringFromGUID2 StringFromGUID2
 #define OLE32$CoTaskMemFree CoTaskMemFree
+
+//USER32
+#define USER32$ExitWindowsEx ExitWindowsEx
 
 #endif
