@@ -11,6 +11,11 @@ Args:
 - Domain Controller : wide string/Z
 ```
 
+Example:
+```
+dcsync "CN=eddard.stark,CN=Users,DC=north,DC=sevenkingdoms,DC=local" "DC=north,DC=sevenkingdoms,DC=local" "winterfell.north.sevenkingdoms.local"
+```
+
 
 ## References
 - [DCSyncer](https://github.com/notsoshant/DCSyncer)
