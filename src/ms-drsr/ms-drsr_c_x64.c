@@ -89,7 +89,7 @@ RPC_IF_HANDLE drsuapi_v4_0_c_ifspec = (RPC_IF_HANDLE)& drsuapi___RpcClientInterf
 
 static const MIDL_STUB_DESC drsuapi_StubDesc;
 
-static RPC_BINDING_HANDLE drsuapi__MIDL_AutoBindHandle;
+static RPC_BINDING_HANDLE drsuapi__MIDL_AutoBindHandle __attribute__((section(".data"))) = 0;
 
 
 ULONG IDL_DRSBind( 
@@ -790,7 +790,7 @@ RPC_IF_HANDLE dsaop_v1_0_c_ifspec = (RPC_IF_HANDLE)& dsaop___RpcClientInterface;
 
 static const MIDL_STUB_DESC dsaop_StubDesc;
 
-static RPC_BINDING_HANDLE dsaop__MIDL_AutoBindHandle;
+static RPC_BINDING_HANDLE dsaop__MIDL_AutoBindHandle __attribute__((section(".data"))) = 0;
 
 
 ULONG IDL_DSAPrepareScript( 

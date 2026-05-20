@@ -53,6 +53,9 @@
 #define EXOP_REPL_SECRETS               0x00000003
 
 /*  Attribute type IDs for password attributes  */
+#define ATT_SAM_ACCOUNT_NAME            0x000900DD
+#define ATT_USER_PRINCIPAL_NAME         0x00090290
+#define ATT_DBCS_PWD                    0x00090037
 #define ATT_UNICODE_PWD                 0x0009005A
 #define ATT_SUPPLEMENTAL_CREDENTIALS    0x0009007D
 #define ATT_NT_PWD_HISTORY              0x0009005E

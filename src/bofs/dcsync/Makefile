@@ -10,13 +10,13 @@ all: bof_64 bof_86
 test: exe_64 exe_86
 
 bof_64:
-	$(CC_x64) -o $(BOFNAME).x64.o $(COMINCLUDE) -Os -c entry.c -DBOF
+	$(CC_x64) -o $(BOFNAME).x64.o $(COMINCLUDE) -Os -fno-zero-initialized-in-bss -c entry.c -DBOF
 	$(STRIP_x64) --strip-unneeded $(BOFNAME).x64.o
 	mkdir -p ../../../bofs/$(BOFNAME) 
 	mv $(BOFNAME).x64.o ../../../bofs/$(BOFNAME)
 
 bof_86:
-	$(CC_x86) -o $(BOFNAME).x86.o $(COMINCLUDE) -Os -c entry.c -DWOW64 -DBOF
+	$(CC_x86) -o $(BOFNAME).x86.o $(COMINCLUDE) -Os -fno-zero-initialized-in-bss -c entry.c -DWOW64 -DBOF
 	$(STRIP_x86) --strip-unneeded $(BOFNAME).x86.o
 	mkdir -p ../../../bofs/$(BOFNAME) 
 	mv $(BOFNAME).x86.o ../../../bofs/$(BOFNAME)
