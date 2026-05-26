@@ -54,7 +54,11 @@ void GetShortcutTargetPath( const wchar_t *shortcutPath )
                         {
                             char* pathString = NULL;
                             pathString = Utf16ToUtf8( targetPath );
-                            internal_printf( "%s\n", pathString );
+                            if ( pathString )
+                            {
+                                internal_printf( "%s\n", pathString );
+                                intFree( pathString );
+                            }
                         }
                     }
                 }
@@ -78,7 +82,11 @@ void ProcessShortcutFilesInDirectory( const wchar_t *directoryPath )
 
     char* dirString = NULL;
     dirString = Utf16ToUtf8( directoryPath );
-    internal_printf( "Searching: %s\n\n", dirString );
+    if ( dirString )
+    {
+        internal_printf( "Searching: %s\n\n", dirString );
+        intFree( dirString );
+    }
 
     MSVCRT$_snwprintf( searchPath, MAX_PATH, L"%s\\*.lnk", directoryPath );
 

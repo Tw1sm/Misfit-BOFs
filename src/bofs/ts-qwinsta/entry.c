@@ -78,20 +78,36 @@ void FormatFileTime(hyper fileTime, char* buffer, size_t bufferSize) {
 int CheckPipeAccessibility(LPWSTR lpwTarget) {
 	char* pipeNameHead = "\\\\";
 	char* pipeNameTail = "\\pipe\\LSM_API_service";
+	char* target = NULL;
+	char* fullPipeName = NULL;
+	BOOL pipeStatus = 0;
 
 	// convert target to char*
 	int requiredSize = KERNEL32$WideCharToMultiByte(CP_UTF8, 0, lpwTarget, -1, NULL, 0, NULL, NULL);
-    char* target = (char*)MSVCRT$malloc(requiredSize * sizeof(char));
-	KERNEL32$WideCharToMultiByte(CP_UTF8, 0, lpwTarget, -1, target, requiredSize, NULL, NULL);
+	if (requiredSize <= 0) {
+		return 0;
+	}
 
-	BOOL pipeStatus = 0;
+    target = (char*)MSVCRT$malloc(requiredSize * sizeof(char));
+	if (target == NULL) {
+		return 0;
+	}
+	if (!KERNEL32$WideCharToMultiByte(CP_UTF8, 0, lpwTarget, -1, target, requiredSize, NULL, NULL)) {
+		MSVCRT$free(target);
+		return 0;
+	}
 
-	char* fullPipeName = MSVCRT$malloc(MSVCRT$strlen(target) + MSVCRT$strlen(pipeNameHead) + MSVCRT$strlen(pipeNameTail) + 1);
+	fullPipeName = MSVCRT$malloc(MSVCRT$strlen(target) + MSVCRT$strlen(pipeNameHead) + MSVCRT$strlen(pipeNameTail) + 1);
+	if (fullPipeName == NULL) {
+		MSVCRT$free(target);
+		return 0;
+	}
 	MSVCRT$strcpy(fullPipeName, pipeNameHead);
 	MSVCRT$strcat(fullPipeName, target);
 	MSVCRT$strcat(fullPipeName, pipeNameTail);
 	pipeStatus = KERNEL32$WaitNamedPipeA(fullPipeName, 3000);
 	MSVCRT$free((void*)fullPipeName);
+	MSVCRT$free((void*)target);
 	return pipeStatus;
 }
  
@@ -254,6 +270,11 @@ void execute(LPWSTR lpwTarget) {
 #ifdef BOF
 void go(IN PCHAR Args, IN ULONG Length) {
 	LPWSTR lpwTarget = NULL;
+
+	if(!bofstart())
+	{
+		return;
+	}
 	
 	// Parse Arguments
 	datap parser;
@@ -262,14 +283,9 @@ void go(IN PCHAR Args, IN ULONG Length) {
 
 	if (lpwTarget == NULL) {
 		internal_printf("[!] Missing arguments\n");
+		printoutput(TRUE);
 		return;
 	}
-
-	if(!bofstart())
-	{
-		return;
-	}
-
 
 	execute(lpwTarget);
 

@@ -3,11 +3,11 @@ BOF to pull a process listing from a remote host using [MS-TSTS](https://learn.m
 
 Returns PID, PPID, process name and SID of the account the process is running as.
 
-Relies upon the `LSM_API_service` named pipe.
+Relies upon the `Ctx_WinStation_API_service` named pipe.
 
 ## Usage
 ```
-ts-qwinsta [target_host]
+ts-tasklist [target_host]
 
 Args:
 - target_host: wide string/Z

@@ -118,6 +118,11 @@ void go( IN PCHAR Args, IN ULONG Length )
     int sessionId;
     wchar_t* filePath;
 
+    if ( !bofstart() )
+    {
+        return;
+    }
+
     /*  Parse Arguments  */
     datap parser;
     BeaconDataParse( &parser, Args, Length );
@@ -127,11 +132,7 @@ void go( IN PCHAR Args, IN ULONG Length )
     if ( sessionId == 0 || filePath == NULL )
     {
         internal_printf( "[!] Missing arguments\n" );
-        return;
-    }
-
-    if ( !bofstart() )
-    {
+        printoutput( TRUE );
         return;
     }
 

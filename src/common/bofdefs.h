@@ -16,9 +16,9 @@ WINBASEAPI void* __cdecl MSVCRT$calloc(size_t num, size_t size);
 WINBASEAPI void __cdecl MSVCRT$free( void* memblock);
 WINBASEAPI errno_t __cdecl MSVCRT$wcsncpy_s(wchar_t *strDest, size_t numberOfElements, const wchar_t *strSource, size_t count);
 WINBASEAPI size_t __cdecl MSVCRT$wcslen(const wchar_t *str);
-WINBASEAPI SIZE_T WINAPI MSVCRT$strlen(const char* str);
-WINBASEAPI void* WINAPI MSVCRT$strcpy(const char* dest, const char* source);
-WINBASEAPI void* WINAPI MSVCRT$strcat(const char* dest, const char* source);
+WINBASEAPI size_t __cdecl MSVCRT$strlen(const char* str);
+WINBASEAPI char* __cdecl MSVCRT$strcpy(char* dest, const char* source);
+WINBASEAPI char* __cdecl MSVCRT$strcat(char* dest, const char* source);
 WINBASEAPI int __cdecl MSVCRT$_snprintf(char *buffer, size_t count, const char *format, ...);
 WINBASEAPI int __cdecl MSVCRT$_snwprintf(wchar_t *buffer, size_t count, const wchar_t *format, ...);
 WINBASEAPI int __cdecl MSVCRT$vsnprintf(char *buffer, size_t count, const char *format, va_list argptr);
@@ -45,6 +45,7 @@ WINBASEAPI UINT WINAPI KERNEL32$GetSystemDirectoryW(LPWSTR lpBuffer, UINT uSize)
 DECLSPEC_IMPORT HANDLE WINAPI KERNEL32$GetCurrentProcess( VOID );
 DECLSPEC_IMPORT HANDLE WINAPI KERNEL32$GetCurrentThread( VOID );
 DECLSPEC_IMPORT WINBOOL WINAPI KERNEL32$CloseHandle( HANDLE hObject );
+DECLSPEC_IMPORT HLOCAL WINAPI KERNEL32$LocalFree( HLOCAL hMem );
 DECLSPEC_IMPORT DWORD WINAPI KERNEL32$GetLastError( VOID );
 DECLSPEC_IMPORT VOID WINAPI KERNEL32$SetLastError( DWORD dwErrCode );
 
@@ -148,6 +149,7 @@ DECLSPEC_IMPORT WINBOOL  WINAPI USER32$ExitWindowsEx( UINT uFlags, DWORD dwReaso
 #define KERNEL32$GetCurrentProcess GetCurrentProcess
 #define KERNEL32$GetCurrentThread GetCurrentThread
 #define KERNEL32$CloseHandle CloseHandle
+#define KERNEL32$LocalFree LocalFree
 #define KERNEL32$GetLastError GetLastError
 #define KERNEL32$SetLastError SetLastError
 

@@ -28,20 +28,36 @@ EXTERN_C void __RPC_USER midl_user_free(void __RPC_FAR* ptr) {
 int CheckPipeAccessibility(LPWSTR lpwTarget) {
 	char* pipeNameHead = "\\\\";
 	char* pipeNameTail = "\\pipe\\Ctx_WinStation_API_service";
+	char* target = NULL;
+	char* fullPipeName = NULL;
+	BOOL pipeStatus = 0;
 
 	// convert target to char*
 	int requiredSize = KERNEL32$WideCharToMultiByte(CP_UTF8, 0, lpwTarget, -1, NULL, 0, NULL, NULL);
-    char* target = (char*)MSVCRT$malloc(requiredSize * sizeof(char));
-	KERNEL32$WideCharToMultiByte(CP_UTF8, 0, lpwTarget, -1, target, requiredSize, NULL, NULL);
+	if (requiredSize <= 0) {
+		return 0;
+	}
 
-	BOOL pipeStatus = 0;
+    target = (char*)MSVCRT$malloc(requiredSize * sizeof(char));
+	if (target == NULL) {
+		return 0;
+	}
+	if (!KERNEL32$WideCharToMultiByte(CP_UTF8, 0, lpwTarget, -1, target, requiredSize, NULL, NULL)) {
+		MSVCRT$free(target);
+		return 0;
+	}
 
-	char* fullPipeName = MSVCRT$malloc(MSVCRT$strlen(target) + MSVCRT$strlen(pipeNameHead) + MSVCRT$strlen(pipeNameTail) + 1);
+	fullPipeName = MSVCRT$malloc(MSVCRT$strlen(target) + MSVCRT$strlen(pipeNameHead) + MSVCRT$strlen(pipeNameTail) + 1);
+	if (fullPipeName == NULL) {
+		MSVCRT$free(target);
+		return 0;
+	}
 	MSVCRT$strcpy(fullPipeName, pipeNameHead);
 	MSVCRT$strcat(fullPipeName, target);
 	MSVCRT$strcat(fullPipeName, pipeNameTail);
 	pipeStatus = KERNEL32$WaitNamedPipeA(fullPipeName, 3000);
 	MSVCRT$free((void*)fullPipeName);
+	MSVCRT$free((void*)target);
 	return pipeStatus;
 }
 
@@ -96,11 +112,14 @@ RPC_STATUS CreateBindingHandle(_In_ LPWSTR lpwTarget, _Out_ RPC_BINDING_HANDLE* 
 }
 
 void FreeAllProcessesInfo(PTS_ALL_PROCESSES_INFO pTsAllProcessesInfo, BOUNDED_ULONG numberOfProcesses) {
-    for (ULONG i = 0; i < numberOfProcesses; i++) {
-        // Free the memory for the pTsProcessInfo in each element
-        if (pTsAllProcessesInfo[i].pTsProcessInfo) {
-            MIDL_user_free(pTsAllProcessesInfo[i].pTsProcessInfo);
-        }
+	for (ULONG i = 0; i < numberOfProcesses; i++) {
+	    // Free the memory for the pTsProcessInfo in each element
+	    if (pTsAllProcessesInfo[i].pTsProcessInfo) {
+			if (pTsAllProcessesInfo[i].pTsProcessInfo->ImageName.Buffer) {
+				MIDL_user_free(pTsAllProcessesInfo[i].pTsProcessInfo->ImageName.Buffer);
+			}
+	        MIDL_user_free(pTsAllProcessesInfo[i].pTsProcessInfo);
+	    }
 
         // Free the memory for the pSid in each element
         if (pTsAllProcessesInfo[i].pSid) {
@@ -148,6 +167,7 @@ void execute(LPWSTR lpwTarget) {
 
 	if (!result) {
 		internal_printf("[!] RpcWinStationOpenServer failed with error code: %d\n", pResult);
+		rStatus = RPCRT4$RpcBindingFree(&bHandle);
 		return;
 	}
 
@@ -175,6 +195,9 @@ void execute(LPWSTR lpwTarget) {
 	
 	if (numberOfProcesses == 0) {
 		internal_printf("\n[!] 0 processes returned - likely insufficent permissions\n");
+		if (ppTsAllProcessesInfo) {
+			MIDL_user_free(ppTsAllProcessesInfo);
+		}
 		return;
 	} else {
 		internal_printf("\n[+] Number of processes: %d\n\n", numberOfProcesses);
@@ -189,19 +212,33 @@ void execute(LPWSTR lpwTarget) {
 
 	internal_printf("----------------------------------------------------------------------------------------------------------------------------\n");
 
-    for (ULONG i = 0; i < numberOfProcesses; i++) {
-        pCurrentProcessInfo = ppTsAllProcessesInfo[i].pTsProcessInfo;
-
-		LPWSTR lpSidString = L"";
-
-		if (ADVAPI32$IsValidSid((PSID)ppTsAllProcessesInfo[i].pSid)) {
-			ADVAPI32$ConvertSidToStringSidW((PSID)ppTsAllProcessesInfo[i].pSid, &lpSidString);
+	for (ULONG i = 0; i < numberOfProcesses; i++) {
+	    pCurrentProcessInfo = ppTsAllProcessesInfo[i].pTsProcessInfo;
+		if (pCurrentProcessInfo == NULL) {
+			continue;
 		}
 
-        if (pCurrentProcessInfo->ImageName.Length > 0 && pCurrentProcessInfo->ImageName.Buffer) {
-            MSVCRT$wcsncpy_s(imageName, MAX_PATH, pCurrentProcessInfo->ImageName.Buffer, pCurrentProcessInfo->ImageName.Length / sizeof(WCHAR));
-            imageName[pCurrentProcessInfo->ImageName.Length / sizeof(WCHAR)] = L'\0';
-			internal_printf("%6d%6d %-50S %-10d %-50S\n", pCurrentProcessInfo->InheritedFromUniqueProcessId, pCurrentProcessInfo->UniqueProcessId, imageName, pCurrentProcessInfo->SessionId, lpSidString);	
+		LPWSTR lpSidString = NULL;
+		BOOL sidStringAllocated = FALSE;
+
+		if (ppTsAllProcessesInfo[i].pSid && ADVAPI32$IsValidSid((PSID)ppTsAllProcessesInfo[i].pSid)) {
+			if (ADVAPI32$ConvertSidToStringSidW((PSID)ppTsAllProcessesInfo[i].pSid, &lpSidString)) {
+				sidStringAllocated = TRUE;
+			}
+		}
+
+	    if (pCurrentProcessInfo->ImageName.Length > 0 && pCurrentProcessInfo->ImageName.Buffer) {
+			size_t imageChars = pCurrentProcessInfo->ImageName.Length / sizeof(WCHAR);
+			if (imageChars >= MAX_PATH) {
+				imageChars = MAX_PATH - 1;
+			}
+	        MSVCRT$wcsncpy_s(imageName, MAX_PATH, pCurrentProcessInfo->ImageName.Buffer, imageChars);
+	        imageName[imageChars] = L'\0';
+			internal_printf("%6d%6d %-50S %-10d %-50S\n", pCurrentProcessInfo->InheritedFromUniqueProcessId, pCurrentProcessInfo->UniqueProcessId, imageName, pCurrentProcessInfo->SessionId, lpSidString ? lpSidString : L"");
+		}
+
+		if (sidStringAllocated) {
+			KERNEL32$LocalFree((HLOCAL)lpSidString);
 		}
 	}
 
@@ -215,6 +252,11 @@ void execute(LPWSTR lpwTarget) {
 #ifdef BOF
 void go(IN PCHAR Args, IN ULONG Length) {
 	LPWSTR lpwTarget = NULL;
+
+	if(!bofstart())
+	{
+		return;
+	}
 	
 	// Parse Arguments
 	datap parser;
@@ -223,14 +265,9 @@ void go(IN PCHAR Args, IN ULONG Length) {
 
 	if (lpwTarget == NULL) {
 		internal_printf("[!] Missing arguments\n");
+		printoutput(TRUE);
 		return;
 	}
-
-	if(!bofstart())
-	{
-		return;
-	}
-
 
 	execute(lpwTarget);
 
