@@ -48,6 +48,30 @@ DECLSPEC_IMPORT WINBOOL WINAPI KERNEL32$CloseHandle( HANDLE hObject );
 DECLSPEC_IMPORT HLOCAL WINAPI KERNEL32$LocalFree( HLOCAL hMem );
 DECLSPEC_IMPORT DWORD WINAPI KERNEL32$GetLastError( VOID );
 DECLSPEC_IMPORT VOID WINAPI KERNEL32$SetLastError( DWORD dwErrCode );
+DECLSPEC_IMPORT VOID WINAPI KERNEL32$Sleep( DWORD dwMilliseconds );
+DECLSPEC_IMPORT LPVOID WINAPI KERNEL32$VirtualAlloc( LPVOID lpAddress, SIZE_T dwSize, DWORD flAllocationType, DWORD flProtect );
+DECLSPEC_IMPORT VOID WINAPI KERNEL32$GetSystemTimeAsFileTime( LPFILETIME lpSystemTimeAsFileTime );
+DECLSPEC_IMPORT WINBOOL WINAPI KERNEL32$GetProcessTimes( HANDLE hProcess, LPFILETIME lpCreationTime, LPFILETIME lpExitTime, LPFILETIME lpKernelTime, LPFILETIME lpUserTime );
+DECLSPEC_IMPORT DWORD WINAPI KERNEL32$GetModuleFileNameW( HMODULE hModule, LPWSTR lpFilename, DWORD nSize );
+DECLSPEC_IMPORT HMODULE WINAPI KERNEL32$GetModuleHandleW( LPCWSTR lpModuleName );
+DECLSPEC_IMPORT ATOM WINAPI USER32$RegisterClassExW( const WNDCLASSEXW *unnamedParam1 );
+DECLSPEC_IMPORT WINBOOL WINAPI USER32$UnregisterClassW( LPCWSTR lpClassName, HINSTANCE hInstance );
+DECLSPEC_IMPORT HWND WINAPI USER32$CreateWindowExW( DWORD dwExStyle, LPCWSTR lpClassName, LPCWSTR lpWindowName, DWORD dwStyle, int X, int Y, int nWidth, int nHeight, HWND hWndParent, HMENU hMenu, HINSTANCE hInstance, LPVOID lpParam );
+DECLSPEC_IMPORT HWND WINAPI USER32$FindWindowW( LPCWSTR lpClassName, LPCWSTR lpWindowName );
+DECLSPEC_IMPORT LRESULT WINAPI USER32$DefWindowProcW( HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam );
+DECLSPEC_IMPORT WINBOOL WINAPI USER32$DestroyWindow( HWND hWnd );
+DECLSPEC_IMPORT BOOL WINAPI USER32$PostMessageW( HWND hWnd, UINT Msg, WPARAM wParam, LPARAM lParam );
+DECLSPEC_IMPORT VOID WINAPI USER32$PostQuitMessage( int nExitCode );
+DECLSPEC_IMPORT WINBOOL WINAPI USER32$ShutdownBlockReasonCreate( HWND hWnd, LPCWSTR pwszReason );
+DECLSPEC_IMPORT WINBOOL WINAPI USER32$ShutdownBlockReasonDestroy( HWND hWnd );
+DECLSPEC_IMPORT WINBOOL WINAPI USER32$GetMessageW( LPMSG lpMsg, HWND hWnd, UINT wMsgFilterMin, UINT wMsgFilterMax );
+DECLSPEC_IMPORT WINBOOL WINAPI USER32$TranslateMessage( const MSG *lpMsg );
+DECLSPEC_IMPORT LRESULT WINAPI USER32$DispatchMessageW( const MSG *lpMsg );
+DECLSPEC_IMPORT HRESULT WINAPI KERNEL32$RegisterApplicationRestart( PCWSTR pwzCommandline, DWORD dwFlags );
+DECLSPEC_IMPORT HRESULT WINAPI KERNEL32$UnregisterApplicationRestart( VOID );
+DECLSPEC_IMPORT HRESULT WINAPI KERNEL32$GetApplicationRestartSettings( HANDLE hProcess, PWSTR pwzCommandline, PDWORD pcchSize, PDWORD pdwFlags );
+DECLSPEC_IMPORT WINBOOL WINAPI KERNEL32$SetProcessShutdownParameters( DWORD dwLevel, DWORD dwFlags );
+DECLSPEC_IMPORT HANDLE WINAPI KERNEL32$CreateThread( LPSECURITY_ATTRIBUTES lpThreadAttributes, SIZE_T dwStackSize, LPTHREAD_START_ROUTINE lpStartAddress, LPVOID lpParameter, DWORD dwCreationFlags, LPDWORD lpThreadId );
 
 //RPCRT4
 DECLSPEC_IMPORT RPC_STATUS WINAPI RPCRT4$RpcBindingFromStringBindingW(RPC_WSTR StringBinding, RPC_BINDING_HANDLE *Binding);
@@ -66,6 +90,7 @@ DECLSPEC_IMPORT WINBOOL  WINAPI ADVAPI32$OpenThreadToken( HANDLE ThreadHandle, D
 DECLSPEC_IMPORT WINBOOL  WINAPI ADVAPI32$OpenProcessToken( HANDLE ProcessHandle, DWORD DesiredAccess, PHANDLE TokenHandle );
 DECLSPEC_IMPORT WINBOOL  WINAPI ADVAPI32$LookupPrivilegeValueA( LPCSTR lpSystemName, LPCSTR lpName, PLUID lpLuid );
 DECLSPEC_IMPORT WINBOOL  WINAPI ADVAPI32$AdjustTokenPrivileges( HANDLE TokenHandle, WINBOOL DisableAllPrivileges, PTOKEN_PRIVILEGES NewState, DWORD BufferLength, PTOKEN_PRIVILEGES PreviousState, PDWORD ReturnLength );
+DECLSPEC_IMPORT WINBOOL WINAPI ADVAPI32$AbortSystemShutdownW( LPCWSTR lpMachineName );
 WINBASEAPI BOOL WINAPI ADVAPI32$IsValidSid(PSID pSid);
 WINBASEAPI BOOL WINAPI ADVAPI32$CryptAcquireContextW(HCRYPTPROV *phProv, LPCWSTR szContainer, LPCWSTR szProvider, DWORD dwProvType, DWORD dwFlags);
 WINBASEAPI BOOL WINAPI ADVAPI32$CryptCreateHash(HCRYPTPROV hProv, ALG_ID Algid, HCRYPTKEY hKey, DWORD dwFlags, HCRYPTHASH *phHash);
@@ -152,6 +177,17 @@ DECLSPEC_IMPORT WINBOOL  WINAPI USER32$ExitWindowsEx( UINT uFlags, DWORD dwReaso
 #define KERNEL32$LocalFree LocalFree
 #define KERNEL32$GetLastError GetLastError
 #define KERNEL32$SetLastError SetLastError
+#define KERNEL32$Sleep Sleep
+#define KERNEL32$VirtualAlloc VirtualAlloc
+#define KERNEL32$GetSystemTimeAsFileTime GetSystemTimeAsFileTime
+#define KERNEL32$GetProcessTimes GetProcessTimes
+#define KERNEL32$GetModuleFileNameW GetModuleFileNameW
+#define KERNEL32$GetModuleHandleW GetModuleHandleW
+#define KERNEL32$RegisterApplicationRestart RegisterApplicationRestart
+#define KERNEL32$UnregisterApplicationRestart UnregisterApplicationRestart
+#define KERNEL32$GetApplicationRestartSettings GetApplicationRestartSettings
+#define KERNEL32$SetProcessShutdownParameters SetProcessShutdownParameters
+#define KERNEL32$CreateThread CreateThread
 
 //RPCRT4
 #define RPCRT4$RpcBindingFromStringBindingW RpcBindingFromStringBindingW
@@ -185,6 +221,7 @@ DECLSPEC_IMPORT WINBOOL  WINAPI USER32$ExitWindowsEx( UINT uFlags, DWORD dwReaso
 #define ADVAPI32$OpenProcessToken OpenProcessToken
 #define ADVAPI32$LookupPrivilegeValueA LookupPrivilegeValueA
 #define ADVAPI32$AdjustTokenPrivileges AdjustTokenPrivileges
+#define ADVAPI32$AbortSystemShutdownW AbortSystemShutdownW
 
 //OLE32
 #define OLE32$CoInitializeEx CoInitializeEx
@@ -196,5 +233,18 @@ DECLSPEC_IMPORT WINBOOL  WINAPI USER32$ExitWindowsEx( UINT uFlags, DWORD dwReaso
 
 //USER32
 #define USER32$ExitWindowsEx ExitWindowsEx
+#define USER32$RegisterClassExW RegisterClassExW
+#define USER32$UnregisterClassW UnregisterClassW
+#define USER32$CreateWindowExW CreateWindowExW
+#define USER32$FindWindowW FindWindowW
+#define USER32$DefWindowProcW DefWindowProcW
+#define USER32$DestroyWindow DestroyWindow
+#define USER32$PostMessageW PostMessageW
+#define USER32$PostQuitMessage PostQuitMessage
+#define USER32$ShutdownBlockReasonCreate ShutdownBlockReasonCreate
+#define USER32$ShutdownBlockReasonDestroy ShutdownBlockReasonDestroy
+#define USER32$GetMessageW GetMessageW
+#define USER32$TranslateMessage TranslateMessage
+#define USER32$DispatchMessageW DispatchMessageW
 
 #endif

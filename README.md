@@ -7,6 +7,7 @@ Miscellaneous BOFs created during ops. Code here probably doesn't fit with exist
 | --- | --- |
 | [dcsync](src/bofs/dcsync/README.md) | DCSync a single target account |
 | [reboot](src/bofs/reboot/README.md) | Force an immediate reboot |
+| [phantompersist](src/bofs/phantompersist/README.md) | Persist the current executable across normal shutdown, restart, and logoff |
 | [recentfiles](src/bofs/recentfiles/README.md) | Parses Windows shortcut files in a directory to print recently accessed target paths |
 | [sessionhop](src/bofs/sessionhop/README.md) | Starts a process in another user's session |
 | [ts-qwinsta](src/bofs/ts-qwinsta/README.md) | Queries remote Terminal Services session data over MS-TSTS RPC. |
