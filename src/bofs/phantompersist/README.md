@@ -16,6 +16,6 @@ The BOF buffer contains a 32-bit action and, for install, an optional packed UTF
 
 Windows adds the executable path itself; do not include it in the restart arguments. Shutdowns before the process has run for 60 seconds, hard power loss, and force termination outside the normal shutdown flow do not trigger restart.
 
-## Validation notes
 
-Validated end to end with a 64-bit Apollo WinExe on Windows Server 2022: a non-forced `InitiateSystemShutdownEx` request was aborted, CSRSS created the per-user `RunOnce\\Application Restart #0` value, and the same executable produced a new Mythic callback after that user logged on again. A nonzero `shutdown.exe /t` implicitly forces applications closed and therefore bypasses this handler.
+## References
+- [Phantom Persistence](https://blog.phantomsec.tools/phantom-persistence)
